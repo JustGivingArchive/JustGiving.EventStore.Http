@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30324.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.Client", "JustGiving.EventStore.Http.Client\JustGiving.EventStore.Http.Client.csproj", "{E88ED7CE-68BE-4846-8140-81D815B32FDF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.SubscriberHost", "JustGiving.EventStore.Http.SubscriberHost\JustGiving.EventStore.Http.SubscriberHost.csproj", "{60404AAC-06B4-4DA4-8237-4A17FBF9D83F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.Client.Tests", "JustGiving.EventStore.Http.Client.Tests\JustGiving.EventStore.Http.Client.Tests.csproj", "{3C81C7C3-7913-480E-AC0E-D67B9FD93B30}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.SubscriberHost.Tests", "JustGiving.EventStore.Http.SubscriberHost.Tests\JustGiving.EventStore.Http.SubscriberHost.Tests.csproj", "{0BD28302-3E7C-446D-AE07-43738DE07645}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E88ED7CE-68BE-4846-8140-81D815B32FDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E88ED7CE-68BE-4846-8140-81D815B32FDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E88ED7CE-68BE-4846-8140-81D815B32FDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E88ED7CE-68BE-4846-8140-81D815B32FDF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60404AAC-06B4-4DA4-8237-4A17FBF9D83F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60404AAC-06B4-4DA4-8237-4A17FBF9D83F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60404AAC-06B4-4DA4-8237-4A17FBF9D83F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60404AAC-06B4-4DA4-8237-4A17FBF9D83F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C81C7C3-7913-480E-AC0E-D67B9FD93B30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C81C7C3-7913-480E-AC0E-D67B9FD93B30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C81C7C3-7913-480E-AC0E-D67B9FD93B30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C81C7C3-7913-480E-AC0E-D67B9FD93B30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BD28302-3E7C-446D-AE07-43738DE07645}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BD28302-3E7C-446D-AE07-43738DE07645}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BD28302-3E7C-446D-AE07-43738DE07645}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BD28302-3E7C-446D-AE07-43738DE07645}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
