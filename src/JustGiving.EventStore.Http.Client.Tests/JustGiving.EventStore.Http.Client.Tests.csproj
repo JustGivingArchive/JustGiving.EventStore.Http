@@ -51,6 +51,7 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="NewEventDataTests.cs" />
     <Compile Include="Yeah.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

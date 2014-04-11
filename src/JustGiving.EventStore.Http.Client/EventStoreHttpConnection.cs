@@ -16,6 +16,8 @@ namespace JustGiving.EventStore.Http.Client
         private readonly string _endpoint;
         private readonly string _connectionName;
 
+        public HttpClientHandler _TestingClientHandler { private get; set; }
+
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
         /// </summary>
@@ -109,7 +111,7 @@ namespace JustGiving.EventStore.Http.Client
         {
             using (var client = GetClient(userCredentials))
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, string.Concat(_endpoint, "/streams/", stream, "/", position==StreamPosition.End?position.ToString() :"head"));
+                var request = new HttpRequestMessage(HttpMethod.Get, string.Concat(_endpoint, "/streams/", stream, "/", position== StreamPosition.End ? "head" : position.ToString()));
                 
                 var result = await client.SendAsync(request);
 
@@ -135,7 +137,7 @@ namespace JustGiving.EventStore.Http.Client
 
                 if (!result.IsSuccessStatusCode)
                 {
-                    throw new EventStoreHttpException(result.Content.ToString(), result.ReasonPhrase, result.StatusCode);
+                    throw new EventStoreHttpException(await result.Content.ReadAsStringAsync(), result.ReasonPhrase, result.StatusCode);
                 }
 
                 var content = await result.Content.ReadAsStringAsync();
@@ -156,13 +158,12 @@ namespace JustGiving.EventStore.Http.Client
                 client.Timeout = _settings.ConnectionTimeout.Value;
             }
 
-
             return client;
         }
 
         public HttpClientHandler GetHandlerForCredentials(UserCredentials credentials)
         {
-            var handler = new HttpClientHandler();
+            var handler = _TestingClientHandler ?? new HttpClientHandler();
             if (credentials != null)
             {
                 handler.Credentials = new NetworkCredential(credentials.Username, credentials.Password);
@@ -172,14 +173,6 @@ namespace JustGiving.EventStore.Http.Client
                 var defaultCredentials = _settings.DefaultUserCredentials;
                 handler.Credentials = new NetworkCredential(defaultCredentials.Username, defaultCredentials.Password);
             }
-            if (_settings.ConnectionTimeout.HasValue)
-            {
-                
-            }
-
-            handler.Proxy = new WebProxy("http://localhost:8888");
-            handler.UseProxy = true;
-
             return handler;
         }
     }

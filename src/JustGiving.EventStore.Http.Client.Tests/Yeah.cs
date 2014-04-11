@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading.Tasks;
+using FluentAssertions;
 using NUnit.Framework;
 
 namespace JustGiving.EventStore.Http.Client.Tests
@@ -12,15 +14,20 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [SetUp]
         public void Setup()
         {
-            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, "http://127.0.0.1:9113", "ShinyConnection");
+            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, "http://192.168.21.11:2113", "ShinyConnection");
         }
 
         [Test]
         public async void Load()
         {
-            for (var i = 0; i < 100; i++)
+            await Load(100);
+        }
+
+        private async Task Load(int count)
+        {
+            for (var i = 0; i < count; i++)
             {
-                var d = new Donation
+                var d = new JBDonation
                 {
                     Id = Guid.NewGuid(),
                     Amount = i,
@@ -37,7 +44,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public async void Retrieve()
         {
-            var @event = await _connection.ReadEventAsync(StreamName, 12);
+            var @event = await _connection.ReadEventAsync(StreamName, StreamPosition.End);
         }
 
         [Test]
@@ -45,8 +52,19 @@ namespace JustGiving.EventStore.Http.Client.Tests
         {
             var @event = await _connection.ReadStreamEventsForwardAsync(StreamName, 10, 5);
         }
+
+        [Test]
+        public async void HeadhShouldNotBeCached()
+        {
+            var event1 = await _connection.ReadEventAsync(StreamName, StreamPosition.End);
+            await Load(1);
+            var event2 = await _connection.ReadEventAsync(StreamName, StreamPosition.End);
+
+            event1.EventInfo.Id.Should().NotBe(event2.EventInfo.Id);
+        }
+
         
-        public class Donation
+        public class JBDonation
         {
             public Guid Id { get; set; }
             public int Amount { get; set; }
