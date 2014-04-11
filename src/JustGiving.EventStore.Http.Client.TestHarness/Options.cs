@@ -18,6 +18,9 @@ namespace JustGiving.EventStore.Http.Client.TestHarness
         [Option('n', DefaultValue = 100, HelpText = "The number of iterations to perform.")]
         public int IterationCount { get; set; }
 
+        [Option('w', "ensure-stream", DefaultValue = false, HelpText = "Write to the stream once before executing (ensuring it exists).")]
+        public bool EnsureStream { get; set; }
+
         [ParserState]
         public IParserState LastParserState { get; set; }
 

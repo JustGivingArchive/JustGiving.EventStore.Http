@@ -17,6 +17,11 @@ namespace JustGiving.EventStore.Http.Client.TestHarness
 
         public async Task Do()
         {
+            if (options.EnsureStream)
+            {
+                await Append();
+            }
+
             var action = GetMethodFor(options.Operation);
 
             var sw = Stopwatch.StartNew();
