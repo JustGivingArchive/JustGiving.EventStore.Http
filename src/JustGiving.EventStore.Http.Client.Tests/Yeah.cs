@@ -54,7 +54,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
-        public async void HeadhShouldNotBeCached()
+        public async void HeadShouldNotBeCached()
         {
             var event1 = await _connection.ReadEventAsync(StreamName, StreamPosition.End);
             await Load(1);
