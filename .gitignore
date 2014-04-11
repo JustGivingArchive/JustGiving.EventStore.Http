@@ -69,12 +69,7 @@ ipch/
 *.psess
 *.vsp
 *.vspx
-
-# TFS 2012 Local Workspace
-$tf/
-
-# Guidance Automation Toolkit
-*.gpState
+src/JustGiving.EventStore.Http.Client.sln.ide/
 
 # ReSharper is a .NET coding add-in
 _ReSharper*/
@@ -99,21 +94,6 @@ _NCrunch_*
 *.mm.*
 AutoTest.Net/
 
-# Web workbench (sass)
-.sass-cache/
-
-# Installshield output folder
-[Ee]xpress/
-
-# DocProject is a documentation generator add-in
-DocProject/buildhelp/
-DocProject/Help/*.HxT
-DocProject/Help/*.HxC
-DocProject/Help/*.hhc
-DocProject/Help/*.hhk
-DocProject/Help/*.hhp
-DocProject/Help/Html2
-DocProject/Help/html
 
 # Click-Once directory
 publish/
@@ -134,15 +114,6 @@ packages/
 # Windows Azure Build Output
 csx/
 *.build.csdef
-
-# Windows Store app package directory
-AppPackages/
-
-# Others
-sql/
-*.Cache
-ClientBin/
-[Ss]tyle[Cc]op.*
 ~$*
 *~
 *.dbmdl
@@ -161,14 +132,3 @@ Backup*/
 UpgradeLog*.XML
 UpgradeLog*.htm
 
-# SQL Server files
-*.mdf
-*.ldf
-
-# Business Intelligence projects
-*.rdl.data
-*.bim.layout
-*.bim_*.settings
-
-# Microsoft Fakes
-FakesAssemblies/
