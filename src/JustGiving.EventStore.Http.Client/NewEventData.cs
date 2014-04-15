@@ -32,7 +32,7 @@ namespace JustGiving.EventStore.Http.Client
         {
             EventId = eventId;
             EventType = eventType;
-            Data = data ?? Empty.ByteArray;
+            Data = data;
         }
 
         public static NewEventData Create<T>(T data)

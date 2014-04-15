@@ -58,7 +58,7 @@ namespace JustGiving.EventStore.Http.Client.TestHarness
                 Console.Write("".PadLeft(totalColumns - progressColumns, ' '));
             }
             Console.Write("]");
-            Console.Write("{0} of {1}", i, iterationCount);
+            Console.Write("{0} of {1}", i+1, iterationCount);
         }
 
 

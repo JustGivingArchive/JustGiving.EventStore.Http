@@ -14,13 +14,13 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [SetUp]
         public void Setup()
         {
-            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, "http://192.168.21.11:2113", "ShinyConnection");
+            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, "http://127.0.0.1:9113", "ShinyConnection");
         }
 
         [Test]
         public async void Load()
         {
-            await Load(100);
+            await Load(2);
         }
 
         private async Task Load(int count)
@@ -35,7 +35,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
                     Success = true
                 };
 
-                var @event = NewEventData.Create(d);
+                var @event = NewEventData.Create((JBDonation)null);
 
                 await _connection.AppendToStreamAsync(StreamName, ExpectedVersion.Any, @event);
             }

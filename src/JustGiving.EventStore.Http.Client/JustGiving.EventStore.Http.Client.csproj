@@ -53,8 +53,6 @@
     <Compile Include="Common\Utils\Ensure.cs" />
     <Compile Include="ConnectionSettingsBuilder.cs" />
     <Compile Include="ConnectionSettings.cs" />
-    <Compile Include="Direction.cs" />
-    <Compile Include="Empty.cs" />
     <Compile Include="NewEventData.cs" />
     <Compile Include="EventInfo.cs" />
     <Compile Include="EventReadResult.cs" />
