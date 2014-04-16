@@ -20,10 +20,10 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public async void Load()
         {
-            await Load(2);
+            await Insert(2);
         }
 
-        private async Task Load(int count)
+        private async Task Insert(int count)
         {
             for (var i = 0; i < count; i++)
             {
@@ -35,7 +35,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
                     Success = true
                 };
 
-                var @event = NewEventData.Create((JBDonation)null);
+                var @event = NewEventData.Create(d);
 
                 await _connection.AppendToStreamAsync(StreamName, ExpectedVersion.Any, @event);
             }
@@ -44,7 +44,11 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public async void Retrieve()
         {
-            var @event = await _connection.ReadEventAsync(StreamName, StreamPosition.End);
+            var @event = await _connection.ReadEventAsync(StreamName, 6);
+
+
+            var event1 = await _connection.ReadEventAsync(StreamName, 4);
+
         }
 
         [Test]
@@ -56,8 +60,9 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public async void HeadShouldNotBeCached()
         {
+            await Insert(1);
             var event1 = await _connection.ReadEventAsync(StreamName, StreamPosition.End);
-            await Load(1);
+            await Insert(1);
             var event2 = await _connection.ReadEventAsync(StreamName, StreamPosition.End);
 
             event1.EventInfo.Id.Should().NotBe(event2.EventInfo.Id);

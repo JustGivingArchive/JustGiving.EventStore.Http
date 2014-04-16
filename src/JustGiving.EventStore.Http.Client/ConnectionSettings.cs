@@ -22,10 +22,10 @@ namespace JustGiving.EventStore.Http.Client
         /// <summary>
         /// Creates a new set of <see cref="ConnectionSettings"/>
         /// </summary>
-        /// <returns>A <see cref="ConnectionSettingsBuilder"/> that can be used to build up a <see cref="ConnectionSettings"/></returns>
+        /// <returns>A <see cref="ConnectionSettingsBuilder"/> that can be used to build up an <see cref="EventStoreHttpConnection"/></returns>
         public static ConnectionSettingsBuilder Create()
         {
-            return new ConnectionSettingsBuilder();
+            return new ConnectionSettingsBuilder().WithConnectionTimeoutOf(TimeSpan.FromSeconds(100));
         }
 
         public UserCredentials DefaultUserCredentials { get; private set; }

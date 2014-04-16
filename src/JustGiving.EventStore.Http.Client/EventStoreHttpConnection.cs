@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -16,8 +15,6 @@ namespace JustGiving.EventStore.Http.Client
         private readonly IHttpClientProxy _httpClientProxy;
         private readonly string _endpoint;
         private readonly string _connectionName;
-
-        public HttpClientHandler _TestingClientHandler { private get; set; }
 
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
@@ -65,17 +62,16 @@ namespace JustGiving.EventStore.Http.Client
 
         public string ConnectionName { get { return _connectionName; } }
 
-        public async Task DeleteStreamAsync(string stream, int expectedVersion, UserCredentials userCredentials = null)
+        public async Task DeleteStreamAsync(string stream, int expectedVersion)
         {
-            await DeleteStreamAsync(stream, expectedVersion, false, userCredentials);
+            await DeleteStreamAsync(stream, expectedVersion, false);
         }
 
-        public async Task DeleteStreamAsync(string stream, int expectedVersion, bool hardDelete, UserCredentials userCredentials = null)
+        public async Task DeleteStreamAsync(string stream, int expectedVersion, bool hardDelete)
         {
-            using (var client = GetClient(userCredentials))
+            using (var client = GetClient())
             {
                 var request = new HttpRequestMessage(HttpMethod.Delete, _endpoint + "/streams/" + stream);
-                request.Headers.Add("Content-Type", "application/json");
                 request.Headers.Add("ES-ExpectedVersion", expectedVersion.ToString());
 
                 if (hardDelete)
@@ -94,18 +90,7 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task AppendToStreamAsync(string stream, int expectedVersion, params NewEventData[] events)
         {
-            await AppendToStreamAsync(stream, expectedVersion, events, null);
-        }
-
-        public async Task AppendToStreamAsync(string stream, int expectedVersion, UserCredentials userCredentials, params NewEventData[] events)
-        {
-            await AppendToStreamAsync(stream, expectedVersion, events, userCredentials);
-        }
-
-        public async Task AppendToStreamAsync(string stream, int expectedVersion, IEnumerable<NewEventData> events, UserCredentials userCredentials = null)
-        {
-
-            using (var client = GetClient(userCredentials))
+            using (var client = GetClient())
             {
                 var request = new HttpRequestMessage(HttpMethod.Post, _endpoint + "/streams/" + stream);
 
@@ -120,13 +105,22 @@ namespace JustGiving.EventStore.Http.Client
             }
         }
 
-        public async Task<EventReadResult> ReadEventAsync(string stream, int position, UserCredentials userCredentials = null)
+        public async Task<EventReadResult> ReadEventAsync(string stream, int position)
         {
-            using (var client = GetClient(userCredentials))
+            using (var client = GetClient())
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, string.Concat(_endpoint, "/streams/", stream, "/", position== StreamPosition.End ? "head" : position.ToString()));
-
                 var result = await _httpClientProxy.SendAsync(client, request);
+
+                if (result.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new EventReadResult(EventReadStatus.NotFound, stream, position, null);
+                }
+
+                if (result.StatusCode == HttpStatusCode.Gone)
+                {
+                    return new EventReadResult(EventReadStatus.StreamDeleted, stream, position, null);
+                }
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -140,13 +134,23 @@ namespace JustGiving.EventStore.Http.Client
             }
         }
 
-        public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, UserCredentials userCredentials = null)
+        public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count)
         {
-            using (var client = GetClient(userCredentials))
+            using (var client = GetClient())
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count));
 
                 var result = await _httpClientProxy.SendAsync(client, request);
+
+                if (result.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return StreamEventsSlice.StreamNotFound();
+                }
+
+                if (result.StatusCode == HttpStatusCode.Gone)
+                {
+                    return StreamEventsSlice.StreamDeleted();
+                }
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -155,16 +159,18 @@ namespace JustGiving.EventStore.Http.Client
 
                 var content = await result.Content.ReadAsStringAsync();
                 var eventInfo = JsonConvert.DeserializeObject<StreamEventsSlice>(content);
-
+                eventInfo.Status = StreamReadStatus.Success;
                 eventInfo.Entries.Reverse();//atom lists things backward
 
                 return eventInfo;
             }
         }
 
-        public HttpClient GetClient(UserCredentials userCredentials)
+        public HttpClient GetClient()
         {
-            var client = new HttpClient(GetHandlerForCredentials(userCredentials), true);
+            var handler = GetHandler();
+
+            var client = new HttpClient(handler, true);
 
             if (_settings.ConnectionTimeout.HasValue)
             {
@@ -174,14 +180,11 @@ namespace JustGiving.EventStore.Http.Client
             return client;
         }
 
-        public HttpClientHandler GetHandlerForCredentials(UserCredentials credentials)
+        public HttpClientHandler GetHandler()
         {
             var handler = new HttpClientHandler();
-            if (credentials != null)
-            {
-                handler.Credentials = new NetworkCredential(credentials.Username, credentials.Password);
-            }
-            else if (_settings.DefaultUserCredentials != null)
+
+            if (_settings.DefaultUserCredentials != null)
             {
                 var defaultCredentials = _settings.DefaultUserCredentials;
                 handler.Credentials = new NetworkCredential(defaultCredentials.Username, defaultCredentials.Password);

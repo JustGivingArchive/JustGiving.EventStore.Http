@@ -65,6 +65,7 @@
     <Compile Include="IEventStoreHttpConnection.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RecordedEvent.cs" />
+    <Compile Include="StreamReadStatus.cs" />
     <Compile Include="StreamEventsSlice.cs" />
     <Compile Include="StreamPosition.cs" />
     <Compile Include="UserCredentials.cs" />

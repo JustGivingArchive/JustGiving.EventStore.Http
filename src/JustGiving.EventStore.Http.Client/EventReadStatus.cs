@@ -14,10 +14,6 @@ namespace JustGiving.EventStore.Http.Client
         /// </summary>
         NotFound = 1,
         /// <summary>
-        /// The stream was not found.
-        /// </summary>
-        NoStream = 2,
-        /// <summary>
         /// The stream previously existed but was deleted.
         /// </summary>
         StreamDeleted = 3,

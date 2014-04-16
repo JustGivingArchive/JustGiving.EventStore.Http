@@ -6,10 +6,10 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("JustGiving.EventStore.Http.Client.Tests")]
-[assembly: AssemblyDescription("A test suite for JG.EventStore.Http.Client")]
+[assembly: AssemblyDescription("A test suite for JustGiving.EventStore.Http.Client")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("JustGiving")]
-[assembly: AssemblyProduct("JG.EventStore.Http.Client.Tests")]
+[assembly: AssemblyProduct("JustGiving.EventStore.Http.Client.Tests")]
 [assembly: AssemblyCopyright("Copyright © JustGiving 2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
