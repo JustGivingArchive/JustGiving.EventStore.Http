@@ -13,6 +13,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         private const string conection_name = "some-name";
 
         Mock<HttpClientHandler> _handlerMock;
+        Mock<IHttpClientProxy> _httpClientProxyMock;
         private ConnectionSettings _defaultConnectionSettings;
         private EventStoreHttpConnection _connection;
 
@@ -20,8 +21,9 @@ namespace JustGiving.EventStore.Http.Client.Tests
         public void Setup()
         {
             _handlerMock = new Mock<HttpClientHandler>();
+            _httpClientProxyMock = new Mock<IHttpClientProxy>();
             _defaultConnectionSettings = GetConnectionSettings();
-            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(_defaultConnectionSettings, endpoint, conection_name);
+            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(_defaultConnectionSettings, _httpClientProxyMock.Object, endpoint, conection_name);
             _connection._TestingClientHandler = _handlerMock.Object;
         }
 

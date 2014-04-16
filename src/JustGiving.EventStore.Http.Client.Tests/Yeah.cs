@@ -14,7 +14,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [SetUp]
         public void Setup()
         {
-            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, "http://127.0.0.1:9113", "ShinyConnection");
+            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, new HttpClientProxy(), "http://127.0.0.1:9113", "ShinyConnection");
         }
 
         [Test]

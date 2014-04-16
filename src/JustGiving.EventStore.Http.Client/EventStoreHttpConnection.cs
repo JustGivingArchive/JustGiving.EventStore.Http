@@ -13,6 +13,7 @@ namespace JustGiving.EventStore.Http.Client
     public class EventStoreHttpConnection : IEventStoreHttpConnection
     {
         private readonly ConnectionSettings _settings;
+        private readonly IHttpClientProxy _httpClientProxy;
         private readonly string _endpoint;
         private readonly string _connectionName;
 
@@ -21,31 +22,43 @@ namespace JustGiving.EventStore.Http.Client
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
         /// </summary>
+        /// <param name="connectionSettings">The <see cref="ConnectionSettings"/> to apply to the new connection</param>
+        /// <param name="httpClientProxy">Shim to abstract non-mockable httpclient</param>
         /// <param name="endpoint">The endpoint to connect to.</param>
         /// <param name="connectionName">Optional name of connection (will be generated automatically, if not provided)</param>
         /// <returns>a new <see cref="IEventStoreHttpConnection"/></returns>
-        public static IEventStoreHttpConnection Create(string endpoint, string connectionName = null)
+        public static IEventStoreHttpConnection Create(ConnectionSettings connectionSettings, IHttpClientProxy httpClientProxy, string endpoint, string connectionName = null)
         {
-            return Create(ConnectionSettings.Default, endpoint, connectionName);
+            return new EventStoreHttpConnection(connectionSettings, httpClientProxy, endpoint, connectionName);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
+        /// </summary>
+        /// <param name="httpClientProxy">Shim to abstract non-mockable httpclient</param>
+        /// <param name="endpoint">The endpoint to connect to.</param>
+        /// <param name="connectionName">Optional name of connection (will be generated automatically, if not provided)</param>
+        /// <returns>a new <see cref="IEventStoreHttpConnection"/></returns>
+        public static IEventStoreHttpConnection Create(IHttpClientProxy httpClientProxy, string endpoint, string connectionName = null)
+        {
+            return new EventStoreHttpConnection(ConnectionSettings.Default, httpClientProxy, endpoint, connectionName);
         }
 
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using specific <see cref="ConnectionSettings"/>
         /// </summary>
         /// <param name="settings">The <see cref="ConnectionSettings"/> to apply to the new connection</param>
+        /// <param name="httpClientProxy">Shim to abstract non-mockable httpclient</param>
         /// <param name="endpoint">The endpoint to connect to.</param>
         /// <param name="connectionName">Optional name of connection (will be generated automatically, if not provided)</param>
         /// <returns>a new <see cref="IEventStoreHttpConnection"/></returns>
-        public static IEventStoreHttpConnection Create(ConnectionSettings settings, string endpoint, string connectionName = null)
+        internal EventStoreHttpConnection(ConnectionSettings settings, IHttpClientProxy httpClientProxy, string endpoint, string connectionName = null)
         {
             Ensure.NotNull(settings, "settings");
             Ensure.NotNull(endpoint, "endpoint");
-            return new EventStoreHttpConnection(settings, endpoint, connectionName);
-        }
 
-        internal EventStoreHttpConnection(ConnectionSettings settings, string endpoint, string connectionName)
-        {
             _connectionName = connectionName ?? string.Format("ES-{0}", Guid.NewGuid());
+            _httpClientProxy = httpClientProxy;
             _settings = settings;
             _endpoint = endpoint;
         }
@@ -70,7 +83,7 @@ namespace JustGiving.EventStore.Http.Client
                     request.Headers.Add("ES-HardDelete", "true");
                 }
 
-                var result = await client.SendAsync(request);
+                var result = await _httpClientProxy.SendAsync(client, request);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -98,7 +111,7 @@ namespace JustGiving.EventStore.Http.Client
 
                 request.Content = new StringContent(JsonConvert.SerializeObject(events), Encoding.UTF8, "application/json");
                 request.Headers.Add("ES-ExpectedVersion", expectedVersion.ToString());
-                var result = await client.SendAsync(request);
+                var result = await _httpClientProxy.SendAsync(client, request);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -112,8 +125,8 @@ namespace JustGiving.EventStore.Http.Client
             using (var client = GetClient(userCredentials))
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, string.Concat(_endpoint, "/streams/", stream, "/", position== StreamPosition.End ? "head" : position.ToString()));
-                
-                var result = await client.SendAsync(request);
+
+                var result = await _httpClientProxy.SendAsync(client, request);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -133,7 +146,7 @@ namespace JustGiving.EventStore.Http.Client
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count));
 
-                var result = await client.SendAsync(request);
+                var result = await _httpClientProxy.SendAsync(client, request);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -163,7 +176,7 @@ namespace JustGiving.EventStore.Http.Client
 
         public HttpClientHandler GetHandlerForCredentials(UserCredentials credentials)
         {
-            var handler = _TestingClientHandler ?? new HttpClientHandler();
+            var handler = new HttpClientHandler();
             if (credentials != null)
             {
                 handler.Credentials = new NetworkCredential(credentials.Username, credentials.Password);

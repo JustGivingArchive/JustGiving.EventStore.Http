@@ -11,7 +11,7 @@ namespace JustGiving.EventStore.Http.Client.TestHarness
 
         public Runner(Options options)
         {
-            connection = EventStoreHttpConnection.Create(options.Endpoint);
+            connection = EventStoreHttpConnection.Create(new HttpClientProxy(), options.Endpoint);
             this.options = options;
         }
 
