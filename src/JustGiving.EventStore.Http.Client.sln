@@ -13,6 +13,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.Client.TestHarness", "JustGiving.EventStore.Http.Client.TestHarness\JustGiving.EventStore.Http.Client.TestHarness.csproj", "{61FB8675-4A01-4247-AD8B-34EAF44AAC16}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.SubscriberHost.Ninject", "JustGiving.EventStore.Http.SubscriberHost.Ninject\JustGiving.EventStore.Http.SubscriberHost.Ninject.csproj", "{0066C550-5C6F-41A5-852B-C7F42E00870B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SubscriberHandlerResolvers", "SubscriberHandlerResolvers", "{2A3E071F-F877-4E12-85B0-999CCEFF0A32}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{68A1CBF0-ADBC-43AF-841A-312F34071DC0}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,8 +48,15 @@ Global
 		{61FB8675-4A01-4247-AD8B-34EAF44AAC16}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61FB8675-4A01-4247-AD8B-34EAF44AAC16}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61FB8675-4A01-4247-AD8B-34EAF44AAC16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0066C550-5C6F-41A5-852B-C7F42E00870B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0066C550-5C6F-41A5-852B-C7F42E00870B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0066C550-5C6F-41A5-852B-C7F42E00870B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0066C550-5C6F-41A5-852B-C7F42E00870B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0066C550-5C6F-41A5-852B-C7F42E00870B} = {2A3E071F-F877-4E12-85B0-999CCEFF0A32}
 	EndGlobalSection
 EndGlobal

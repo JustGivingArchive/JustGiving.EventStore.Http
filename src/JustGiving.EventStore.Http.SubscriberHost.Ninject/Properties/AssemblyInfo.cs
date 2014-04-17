@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("JustGiving.EventStore.Http.SubscriberHost.Tests")]
-[assembly: AssemblyDescription("A test-suite for JustGiving.EventStore.Http.SubscriberHost")]
+[assembly: AssemblyTitle("JustGiving.EventStore.Http.SubscriberHost.Ninject")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("JustGiving")]
-[assembly: AssemblyProduct("JustGiving.EventStore.Http.SubscriberHost.Tests")]
+[assembly: AssemblyProduct("JustGiving.EventStore.Http.SubscriberHost.Ninject")]
 [assembly: AssemblyCopyright("Copyright © JustGiving 2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("ca912c2c-2c72-46e6-ad61-1fcd62aa338e")]
+[assembly: Guid("ec90f7ff-cdb2-4591-a17b-2027788feae1")]
 
 // Version information for an assembly consists of the following four values:
 //
