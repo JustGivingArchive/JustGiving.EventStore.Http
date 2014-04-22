@@ -106,9 +106,17 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 var handlerType = handler.GetType();
 
-                var handleMethod = GetHandleMethod(handlerType, eventType);
+                var handleMethod = GetMethodFromHandler(handlerType, eventType, "Handle");
 
-                await (Task)handleMethod.Invoke(handler, new[] { @event });
+                try
+                {
+                    await (Task) handleMethod.Invoke(handler, new[] {@event});
+                }
+                catch (Exception ex)
+                {
+                    var errorMethod = GetMethodFromHandler(handlerType, eventType, "OnError");
+                    errorMethod.Invoke(handler, new[] { ex });
+                }
             }
 
             lock (_synchroot)
@@ -117,13 +125,22 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
         }
 
-        public MethodInfo GetHandleMethod(Type handlerType, Type eventType)
+        Dictionary<string, MethodInfo> methodCache = new Dictionary<string, MethodInfo>();
+
+        public MethodInfo GetMethodFromHandler(Type concreteHandlerType, Type eventType, string methodName)
         {
-            var @interface = handlerType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IHandleEventsOf<>) && x.GetGenericArguments()[0] == eventType); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
+            MethodInfo result;
+            if (methodCache.TryGetValue(concreteHandlerType + "_" + methodName, out result))
+            {
+                return result;
+            }
+            
+            var @interface = concreteHandlerType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IHandleEventsOf<>) && x.GetGenericArguments()[0] == eventType); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
+            result = @interface.GetMethod(methodName);
 
-            var handleMethod = @interface.GetMethod("Handle");
+            methodCache.Add(concreteHandlerType + "_" + methodName, result);
 
-            return handleMethod;
+            return result;
         }
     }
 }
