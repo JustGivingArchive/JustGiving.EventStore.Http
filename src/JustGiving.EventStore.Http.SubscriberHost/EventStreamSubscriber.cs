@@ -3,23 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Timers;
 using JustGiving.EventStore.Http.Client;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriber : IEventStreamSubscriber
     {
-        private Dictionary<string, Timer> _subscriptions = new Dictionary<string, Timer>(StringComparer.InvariantCultureIgnoreCase);
-
         private readonly IEventStoreHttpConnection _connection;
         private readonly IEventHandlerResolver _eventHandlerResolver;
         private readonly IStreamPositionRepository _streamPositionRepository;
-        private readonly TimeSpan _defaultPollingInterval = TimeSpan.FromSeconds(30);
+        private readonly ISubscriptionTimerManager _subscriptionTimerManager;
+        private readonly TimeSpan _defaultPollingInterval;
         private readonly int? _maxConcurrency;
         private readonly int _sliceSize;
 
         private readonly object _synchroot = new object();
+        
 
         /// <summary>
         /// Creates a new <see cref="IEventStreamSubscriber"/> to single node using default <see cref="ConnectionSettings"/>
@@ -35,9 +34,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// Creates a new <see cref="IEventStreamSubscriber"/> to single node using default <see cref="ConnectionSettings"/>
         /// </summary>
         /// <returns>a new <see cref="IEventStreamSubscriber"/></returns>
-        public static IEventStreamSubscriber Create(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository)
+        public static IEventStreamSubscriber Create(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager)
         {
-            return new EventStreamSubscriber(EventStreamSubscriberSettings.Default(connection, eventHandlerResolver, streamPositionRepository));
+            return new EventStreamSubscriber(EventStreamSubscriberSettings.Default(connection, eventHandlerResolver, streamPositionRepository, subscriptionTimerManager));
         }
 
         internal EventStreamSubscriber(EventStreamSubscriberSettings settings)
@@ -45,6 +44,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _connection = settings.Connection;
             _eventHandlerResolver = settings.EventHandlerResolver;
             _streamPositionRepository = settings.StreamPositionRepository;
+            _subscriptionTimerManager = settings.SubscriptionTimerManager;
             _defaultPollingInterval = settings.DefaultPollingInterval;
             _maxConcurrency = settings.MaxConcurrency;
             _sliceSize = settings.SliceSize;
@@ -53,22 +53,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public void SubscribeTo(string stream, TimeSpan? pollInterval = null)
         {
-            var actualPollInterval = (pollInterval ?? _defaultPollingInterval).TotalMilliseconds;
-
             lock (_synchroot)
             {
-                Timer current;
-                if (_subscriptions.TryGetValue(stream, out current))
-                {
-                    current.Interval = actualPollInterval;
-                }
-                else
-                {
-                    current = new Timer(actualPollInterval);
-                    _subscriptions.Add(stream, current);
-                    current.Start();
-                    current.Elapsed += (s,e)=> PollAsync(stream);
-                }
+                _subscriptionTimerManager.Add(stream, pollInterval ?? _defaultPollingInterval, () => PollAsync(stream));
             }
         }
 
@@ -76,25 +63,34 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         {
             lock (_synchroot)
             {
-                Timer current;
-                if (_subscriptions.TryGetValue(stream, out current))
-                {
-                    current.Stop();
-                    current.Dispose();
-                    _subscriptions.Remove(stream);
-                }
+                _subscriptionTimerManager.Remove(stream);
             }
         }
 
         public async Task PollAsync(string stream)
         {
-            var lastPosition = _streamPositionRepository.GetPositionFor(stream)??0;
+            lock (_synchroot)
+            {
+                _subscriptionTimerManager.Pause(stream);
+                //we want to be able to cane a stream if we are not up to date, without reading it twice
+            }
+            var lastPosition = _streamPositionRepository.GetPositionFor(stream) ?? 0;
 
             var processingBatch = await _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize);
 
             foreach (var message in processingBatch.Entries)
             {
                 await InvokeMessageHandlersForMessageAsync(stream, message);
+            }
+
+            if (processingBatch.Entries.Any())
+            {
+                await PollAsync(stream);
+            }
+
+            lock (_synchroot)
+            {
+                _subscriptionTimerManager.Resume(stream);
             }
         }
 
@@ -115,7 +111,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 await (Task)handleMethod.Invoke(handler, new[] { @event });
             }
 
-            _streamPositionRepository.SetPositionFor(stream, @eventInfo.SequenceNumber);
+            lock (_synchroot)
+            {
+                _streamPositionRepository.SetPositionFor(stream, @eventInfo.SequenceNumber);
+            }
         }
 
         public MethodInfo GetHandleMethod(Type handlerType, Type eventType)
