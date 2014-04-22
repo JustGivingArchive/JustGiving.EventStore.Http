@@ -42,12 +42,25 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MemoryBackedStreamPositionRepositoryForDebuggingTests.cs" />
+    <Compile Include="EventStreamSubscriberSettingsBuilderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JustGiving.EventStore.Http.Client\JustGiving.EventStore.Http.Client.csproj">
+      <Project>{e88ed7ce-68be-4846-8140-81d815b32fdf}</Project>
+      <Name>JustGiving.EventStore.Http.Client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JustGiving.EventStore.Http.SubscriberHost\JustGiving.EventStore.Http.SubscriberHost.csproj">
+      <Project>{60404aac-06b4-4da4-8237-4a17fbf9d83f}</Project>
+      <Name>JustGiving.EventStore.Http.SubscriberHost</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
