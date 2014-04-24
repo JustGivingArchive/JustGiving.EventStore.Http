@@ -20,20 +20,20 @@ namespace JustGiving.EventStore.Http.Client
         /// <summary>
         /// The event number of the requested event.
         /// </summary>
-        public readonly int EventNumber;
+        public readonly int SequenceNumber;
 
         /// <summary>
         /// The event read represented as an <see cref="EventInfo"/>
         /// </summary>
         public readonly EventInfo EventInfo;
 
-        internal EventReadResult(EventReadStatus status, string stream, int eventNumber, EventInfo eventInfo)
+        public EventReadResult(EventReadStatus status, string stream, int sequenceNumber, EventInfo eventInfo)
         {
             Ensure.NotNullOrEmpty(stream, "stream");
 
             Status = status;
             Stream = stream;
-            EventNumber = eventNumber;
+            SequenceNumber = sequenceNumber;
             EventInfo = eventInfo;
         }
     }

@@ -117,7 +117,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                 try
                 {
-                    await (Task) handleMethod.Invoke(handler, new[] {@event});
+                    var eventJObject = eventReadResult.EventInfo.Content.Data;
+                    var @event = eventJObject == null ? null : @eventJObject.ToObject(eventType);
+                    await (Task)handleMethod.Invoke(handler, new[] { @event });
                 }
                 catch (Exception ex)
                 {
@@ -128,16 +130,17 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             lock (_synchroot)
             {
-                _streamPositionRepository.SetPositionFor(stream, @eventInfo.SequenceNumber);
+                _streamPositionRepository.SetPositionFor(stream, eventReadResult.SequenceNumber);
             }
         }
+
 
         Dictionary<string, MethodInfo> methodCache = new Dictionary<string, MethodInfo>();
 
         public MethodInfo GetMethodFromHandler(Type concreteHandlerType, Type eventType, string methodName)
         {
             MethodInfo result;
-            if (methodCache.TryGetValue(concreteHandlerType + "_" + methodName, out result))
+            if (methodCache.TryGetValue(concreteHandlerType + methodName, out result))
             {
                 return result;
             }
@@ -145,7 +148,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             var @interface = concreteHandlerType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IHandleEventsOf<>) && x.GetGenericArguments()[0] == eventType); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
             result = @interface.GetMethod(methodName);
 
-            methodCache.Add(concreteHandlerType + "_" + methodName, result);
+            methodCache.Add(concreteHandlerType + methodName, result);
 
             return result;
         }
