@@ -13,6 +13,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly IEventHandlerResolver _eventHandlerResolver;
         private readonly IStreamPositionRepository _streamPositionRepository;
         private readonly ISubscriptionTimerManager _subscriptionTimerManager;
+        private readonly IEventTypeResolver _eventTypeResolver;
         private readonly TimeSpan _defaultPollingInterval;
         private readonly int? _maxConcurrency;
         private readonly int _sliceSize;
@@ -34,9 +35,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// Creates a new <see cref="IEventStreamSubscriber"/> to single node using default <see cref="ConnectionSettings"/>
         /// </summary>
         /// <returns>a new <see cref="IEventStreamSubscriber"/></returns>
-        public static IEventStreamSubscriber Create(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager)
+        public static IEventStreamSubscriber Create(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver)
         {
-            return new EventStreamSubscriber(EventStreamSubscriberSettings.Default(connection, eventHandlerResolver, streamPositionRepository, subscriptionTimerManager));
+            return new EventStreamSubscriber(EventStreamSubscriberSettings.Default(connection, eventHandlerResolver, streamPositionRepository, subscriptionTimerManager, eventTypeResolver));
         }
 
         internal EventStreamSubscriber(EventStreamSubscriberSettings settings)
@@ -45,6 +46,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _eventHandlerResolver = settings.EventHandlerResolver;
             _streamPositionRepository = settings.StreamPositionRepository;
             _subscriptionTimerManager = settings.SubscriptionTimerManager;
+            _eventTypeResolver = settings.EventTypeResolver;
             _defaultPollingInterval = settings.DefaultPollingInterval;
             _maxConcurrency = settings.MaxConcurrency;
             _sliceSize = settings.SliceSize;
@@ -80,12 +82,13 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             foreach (var message in processingBatch.Entries)
             {
-                await InvokeMessageHandlersForMessageAsync(stream, message);
+                await InvokeMessageHandlersForStreamMessageAsync(stream, message);
             }
 
             if (processingBatch.Entries.Any())
             {
                 await PollAsync(stream);
+                return;
             }
 
             lock (_synchroot)
@@ -94,12 +97,16 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
         }
 
-        public async Task InvokeMessageHandlersForMessageAsync(string stream, BasicEventInfo eventInfo)
+        public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, BasicEventInfo eventInfo)
         {
             var @event = await _connection.ReadEventAsync(stream, eventInfo.SequenceNumber);
 
-            var eventType = Type.GetType(@event.EventInfo.Summary);
+            await InvokeMessageHandlersForEventMessageAsync(stream, @event);
+        }
 
+        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, EventReadResult eventReadResult)
+        {
+            var eventType = _eventTypeResolver.Resolve(eventReadResult.EventInfo.Summary);
             var handlers = _eventHandlerResolver.GetHandlersFor(eventType);
 
             foreach (var handler in handlers)

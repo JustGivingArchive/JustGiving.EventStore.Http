@@ -39,9 +39,11 @@
   <ItemGroup>
     <Compile Include="EventStreamSubscriberSettings.cs" />
     <Compile Include="EventStreamSubscriberSettingsBuilder.cs" />
+    <Compile Include="EventTypeResolver.cs" />
     <Compile Include="IEventHandlerResolver.cs" />
     <Compile Include="EventStreamSubscriber.cs" />
     <Compile Include="IEventStreamSubscriber.cs" />
+    <Compile Include="IEventTypeResolver.cs" />
     <Compile Include="IHandleEventsOf.cs" />
     <Compile Include="IStreamPositionRepository.cs" />
     <Compile Include="ISubscriptionTimerManager.cs" />

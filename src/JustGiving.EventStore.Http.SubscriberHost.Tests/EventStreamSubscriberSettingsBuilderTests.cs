@@ -14,6 +14,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         private Mock<IEventHandlerResolver> _eventHandlerResolverMock;
         private Mock<IStreamPositionRepository> _streamPositionRepositoryMock;
         private Mock<ISubscriptionTimerManager> _subscriptionTimerManagerMock;
+        private Mock<IEventTypeResolver> _eventTypeResolverMock;
         private EventStreamSubscriberSettingsBuilder _builder;
 
         [SetUp]
@@ -23,8 +24,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _eventHandlerResolverMock = new Mock<IEventHandlerResolver>();
             _streamPositionRepositoryMock = new Mock<IStreamPositionRepository>();
             _subscriptionTimerManagerMock = new Mock<ISubscriptionTimerManager>();
+            _eventTypeResolverMock = new Mock<IEventTypeResolver>();
 
-            _builder = new EventStreamSubscriberSettingsBuilder(_connectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object, _subscriptionTimerManagerMock.Object);
+            _builder = new EventStreamSubscriberSettingsBuilder(_connectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object, _subscriptionTimerManagerMock.Object, _eventTypeResolverMock.Object);
         }
 
         [Test]
