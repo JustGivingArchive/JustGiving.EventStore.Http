@@ -126,27 +126,27 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public void InvokeMessageHandlersForEventMessageAsync_ShouldStoreStreamPositionOnceHandlersInvoked()
+        public async void InvokeMessageHandlersForEventMessageAsync_ShouldStoreStreamPositionOnceHandlersInvoked()
         {
             var result = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName });
 
-            _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, result);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, result);
 
             _streamPositionRepositoryMock.Verify(x => x.SetPositionFor(StreamName, 123));
         }
 
         [Test]
-        public void InvokeMessageHandlersForEventMessageAsync_ShouldRequestCorrectHandlers()
+        public async void InvokeMessageHandlersForEventMessageAsync_ShouldRequestCorrectHandlers()
         {
             var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName });
 
-            _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
 
             _eventHandlerResolverMock.Verify(x => x.GetHandlersFor(typeof(SomeEvent)));
         }
 
         [Test]
-        public void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlers()
+        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlers()
         {
             var @implicit = new SomeImplicitHandler();
             var @explicit = new SomeExplicitHandler();
@@ -155,7 +155,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             _eventHandlerResolverMock.Setup(x => x.GetHandlersFor(typeof(SomeEvent))).Returns(new IHandleEventsOf<SomeEvent>[] { @implicit , @explicit});
 
-            _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
 
             @implicit.@event.Should().NotBeNull();
             @explicit.@event.Should().NotBeNull();
