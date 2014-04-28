@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using JustGiving.EventStore.Http.Client.Common.Utils;
 using JustGiving.EventStore.Http.Client.Exceptions;
+using log4net;
 using Newtonsoft.Json;
 
 namespace JustGiving.EventStore.Http.Client
@@ -13,6 +14,7 @@ namespace JustGiving.EventStore.Http.Client
     {
         private readonly ConnectionSettings _settings;
         private readonly IHttpClientProxy _httpClientProxy;
+        private readonly ILog _log;
         private readonly string _endpoint;
         private readonly string _connectionName;
 
@@ -57,6 +59,7 @@ namespace JustGiving.EventStore.Http.Client
             _connectionName = connectionName ?? string.Format("ES-{0}", Guid.NewGuid());
             _httpClientProxy = httpClientProxy;
             _settings = settings;
+            _log = settings.Log;
             _endpoint = endpoint;
         }
 
@@ -69,6 +72,7 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task DeleteStreamAsync(string stream, int expectedVersion, bool hardDelete)
         {
+            Log.Info(_log, "Deleting stream {0} (hard={1})", stream, hardDelete);
             using (var client = GetClient())
             {
                 var request = new HttpRequestMessage(HttpMethod.Delete, _endpoint + "/streams/" + stream);
@@ -83,6 +87,7 @@ namespace JustGiving.EventStore.Http.Client
 
                 if (!result.IsSuccessStatusCode)
                 {
+                    Log.Error(_log, "Error deleting stream {0} (hard={1}, expectedVersion={2})", stream, hardDelete, expectedVersion);
                     throw new EventStoreHttpException(result.Content.ToString(), result.ReasonPhrase, result.StatusCode);
                 }
             }
@@ -90,9 +95,11 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task AppendToStreamAsync(string stream, int expectedVersion, params NewEventData[] events)
         {
+            var url = _endpoint + "/streams/" + stream;
+            Log.Info(_log, "Appending {0} events to {1}", events==null?0 :events.Length, stream);
             using (var client = GetClient())
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, _endpoint + "/streams/" + stream);
+                var request = new HttpRequestMessage(HttpMethod.Post, url);
 
                 request.Content = new StringContent(JsonConvert.SerializeObject(events), Encoding.UTF8, "application/json");
                 request.Headers.Add("ES-ExpectedVersion", expectedVersion.ToString());
@@ -100,6 +107,7 @@ namespace JustGiving.EventStore.Http.Client
 
                 if (!result.IsSuccessStatusCode)
                 {
+                    Log.Error(_log, "Error appending {0} events to {1}", events == null ? 0 : events.Length, url);
                     throw new EventStoreHttpException(result.Content.ToString(), result.ReasonPhrase, result.StatusCode);
                 }
             }
@@ -109,28 +117,41 @@ namespace JustGiving.EventStore.Http.Client
         {
             using (var client = GetClient())
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, string.Concat(_endpoint, "/streams/", stream, "/", position== StreamPosition.End ? "head" : position.ToString()));
+                var url = string.Concat(_endpoint, "/streams/", stream, "/", position == StreamPosition.End ? "head" : position.ToString());
+                Log.Info(_log, "Reading event from {0}", url);
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
                 var result = await _httpClientProxy.SendAsync(client, request);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
+                    Log.Warning(_log, "Read Event:Not Found: {0}/{1}", stream, position);
                     return new EventReadResult(EventReadStatus.NotFound, stream, position, null);
                 }
 
                 if (result.StatusCode == HttpStatusCode.Gone)
                 {
+                    Log.Warning(_log, "Read Event: Gone: {0}/{1}", stream, position);
                     return new EventReadResult(EventReadStatus.StreamDeleted, stream, position, null);
                 }
 
                 if (!result.IsSuccessStatusCode)
                 {
+                    Log.Error(_log, "Read Event: Other Error ({0}): {1}/{2}", result.StatusCode.ToString(), stream, position);
                     throw new EventStoreHttpException(result.Content.ToString(), result.ReasonPhrase, result.StatusCode);
                 }
 
-                var content = await result.Content.ReadAsStringAsync();
-                var eventInfo = JsonConvert.DeserializeObject<EventInfo>(content);
+                try
+                {
+                    var content = await result.Content.ReadAsStringAsync();
+                    var eventInfo = JsonConvert.DeserializeObject<EventInfo>(content);
 
-                return new EventReadResult(EventReadStatus.Success, stream, position, eventInfo);
+                    return new EventReadResult(EventReadStatus.Success, stream, position, eventInfo);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(_log, ex, "Error deserialising content from {0}/{1}", stream, position);
+                    throw;
+                }
             }
         }
 
@@ -138,22 +159,27 @@ namespace JustGiving.EventStore.Http.Client
         {
             using (var client = GetClient())
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count));
+                var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count);
+                Log.Info(_log, "Reading forwards from {0}", url);
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
 
                 var result = await _httpClientProxy.SendAsync(client, request);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
+                    Log.Warning(_log, "Event slice not found: {0}", url);
                     return StreamEventsSlice.StreamNotFound();
                 }
 
                 if (result.StatusCode == HttpStatusCode.Gone)
                 {
+                    Log.Warning(_log, "Event slice not gone: {0}", url);
                     return StreamEventsSlice.StreamDeleted();
                 }
 
                 if (!result.IsSuccessStatusCode)
                 {
+                    Log.Warning(_log, "Event slice: other error ({0}): {1}", result.StatusCode.ToString(), url);
                     throw new EventStoreHttpException(await result.Content.ReadAsStringAsync(), result.ReasonPhrase, result.StatusCode);
                 }
 

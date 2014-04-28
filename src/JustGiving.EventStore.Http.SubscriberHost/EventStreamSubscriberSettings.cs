@@ -1,11 +1,12 @@
 using System;
 using JustGiving.EventStore.Http.Client;
+using log4net;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriberSettings
     {
-        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager _subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int? maxConcurrency, int sliceSize)
+        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager _subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int? maxConcurrency, int sliceSize, ILog log)
         {
             Connection = connection;
             EventHandlerResolver = eventHandlerResolver;
@@ -15,6 +16,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             MaxConcurrency = maxConcurrency;
             DefaultPollingInterval = pollingInterval;
             SliceSize = sliceSize;
+            Log = log;
         }
 
         /// <summary>
@@ -31,6 +33,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public IStreamPositionRepository StreamPositionRepository { get; private set; }
         public ISubscriptionTimerManager SubscriptionTimerManager { get; private set; }
         public IEventTypeResolver EventTypeResolver { get; private set; }
+        public ILog Log { get; private set; }
 
         public TimeSpan DefaultPollingInterval { get; private set; }
         public int? MaxConcurrency { get; private set; }

@@ -1,5 +1,6 @@
 using System;
 using JustGiving.EventStore.Http.Client;
+using log4net;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
 {
@@ -10,10 +11,12 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private IStreamPositionRepository _streamPositionRepository;
         private ISubscriptionTimerManager _subscriptionTimerManager;
         private IEventTypeResolver _eventTypeResolver;
+        private ILog _log;
+
         private TimeSpan _defaultPollingInterval = TimeSpan.FromSeconds(30);
         private int? _maxConcurrency;
         private int _sliceSize = 100;
-        
+
         public EventStreamSubscriberSettingsBuilder(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver)
         {
             _connection = connection;
@@ -41,9 +44,15 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             return this;
         }
 
+        public EventStreamSubscriberSettingsBuilder WithLogger(ILog log)
+        {
+            _log = log;
+            return this;
+        }
+
         public static implicit operator EventStreamSubscriberSettings(EventStreamSubscriberSettingsBuilder builder)
         {
-            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._maxConcurrency, builder._sliceSize);
+            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._maxConcurrency, builder._sliceSize, builder._log);
         }
     }
 }

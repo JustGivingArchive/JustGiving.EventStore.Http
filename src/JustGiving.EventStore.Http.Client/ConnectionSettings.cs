@@ -1,14 +1,16 @@
 ﻿using System;
+using log4net;
 
 namespace JustGiving.EventStore.Http.Client
 {
     public sealed class ConnectionSettings
     {
-        public ConnectionSettings(UserCredentials defaultUserCredentials, TimeSpan? connectionTimeout, Action<IEventStoreHttpConnection, Exception> errorHandler)
+        public ConnectionSettings(UserCredentials defaultUserCredentials, TimeSpan? connectionTimeout, Action<IEventStoreHttpConnection, Exception> errorHandler, ILog log)
         {
             DefaultUserCredentials = defaultUserCredentials;
             ConnectionTimeout = connectionTimeout;
             ErrorHandler = errorHandler;
+            Log = log;
         }
 
         //An implicit cast is going on....
@@ -31,5 +33,6 @@ namespace JustGiving.EventStore.Http.Client
         public UserCredentials DefaultUserCredentials { get; private set; }
         public TimeSpan? ConnectionTimeout { get; private set; }
         public Action<IEventStoreHttpConnection, Exception> ErrorHandler { get; private set; }
+        public ILog Log { get; private set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using log4net;
 
 namespace JustGiving.EventStore.Http.Client
 {
@@ -7,6 +8,7 @@ namespace JustGiving.EventStore.Http.Client
         private UserCredentials _defaultUserCredentials;
         private TimeSpan? _connectionTimeout;
         private Action<IEventStoreHttpConnection, Exception> _errorHandler;
+        private ILog _log;
 
         public ConnectionSettingsBuilder SetDefaultUserCredentials(UserCredentials credentials)
         {
@@ -26,9 +28,15 @@ namespace JustGiving.EventStore.Http.Client
             return this;
         }
 
+        public ConnectionSettingsBuilder WithLog(ILog log)
+        {
+            _log = log;
+            return this;
+        }
+
         public static implicit operator ConnectionSettings(ConnectionSettingsBuilder builder)
         {
-            return new ConnectionSettings(builder._defaultUserCredentials, builder._connectionTimeout, builder._errorHandler);
+            return new ConnectionSettings(builder._defaultUserCredentials, builder._connectionTimeout, builder._errorHandler, builder._log);
         }
     }
 }

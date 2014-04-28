@@ -2,6 +2,7 @@
 using FluentAssertions;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.SubscriberHost;
+using log4net;
 using Moq;
 using NUnit.Framework;
 
@@ -72,6 +73,21 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public void WhenSliceSizeNotSet_ShouldDefaultTo100()
         {
             ((EventStreamSubscriberSettings)_builder).SliceSize.Should().Be(100);
+        }
+
+        [Test]
+        public void WithLogger_ShouldStoreRequiredLogger()
+        {
+            var expected = Mock.Of<ILog>();
+            _builder.WithLogger(expected);
+
+            ((EventStreamSubscriberSettings)_builder).Log.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenLoggerNotSet_ShouldDefaultToNull()
+        {
+            ((EventStreamSubscriberSettings)_builder).Log.Should().BeNull();
         }
     }
 }

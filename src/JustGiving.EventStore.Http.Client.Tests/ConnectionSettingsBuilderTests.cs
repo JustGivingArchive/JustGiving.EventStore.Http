@@ -1,5 +1,7 @@
 using System;
 using FluentAssertions;
+using log4net;
+using Moq;
 using NUnit.Framework;
 
 namespace JustGiving.EventStore.Http.Client.Tests
@@ -36,5 +38,23 @@ namespace JustGiving.EventStore.Http.Client.Tests
 
             ((ConnectionSettings)builder).ErrorHandler.Should().Be(expectedHandler);
         }
+
+        [Test]
+        public void WithLogger_ShouldStoreRequiredLogger()
+        {
+            var expected = Mock.Of<ILog>();
+            var builder = new ConnectionSettingsBuilder();
+            builder.WithLog(expected);
+
+            ((ConnectionSettings)builder).Log.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenLoggerNotSet_ShouldDefaultToNull()
+        {
+            var builder = new ConnectionSettingsBuilder();
+            ((ConnectionSettings)builder).Log.Should().BeNull();
+        }
+
     }
 }
