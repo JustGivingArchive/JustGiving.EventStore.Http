@@ -17,6 +17,7 @@ namespace JustGiving.EventStore.Http.Client
         private readonly ILog _log;
         private readonly string _endpoint;
         private readonly string _connectionName;
+        private Action<IEventStoreHttpConnection, Exception> _errorHandler;
 
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
@@ -61,6 +62,7 @@ namespace JustGiving.EventStore.Http.Client
             _settings = settings;
             _log = settings.Log;
             _endpoint = endpoint;
+            _errorHandler = settings.ErrorHandler;
         }
 
         public string ConnectionName { get { return _connectionName; } }
@@ -149,6 +151,7 @@ namespace JustGiving.EventStore.Http.Client
                 }
                 catch (Exception ex)
                 {
+                    HandleError(ex);
                     Log.Error(_log, ex, "Error deserialising content from {0}/{1}", stream, position);
                     throw;
                 }
@@ -163,32 +166,42 @@ namespace JustGiving.EventStore.Http.Client
                 Log.Info(_log, "Reading forwards from {0}", url);
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-                var result = await _httpClientProxy.SendAsync(client, request);
-
-                if (result.StatusCode == HttpStatusCode.NotFound)
+                try
                 {
-                    Log.Warning(_log, "Event slice not found: {0}", url);
-                    return StreamEventsSlice.StreamNotFound();
+                    var result = await _httpClientProxy.SendAsync(client, request);
+
+                    if (result.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        Log.Warning(_log, "Event slice not found: {0}", url);
+                        return StreamEventsSlice.StreamNotFound();
+                    }
+
+                    if (result.StatusCode == HttpStatusCode.Gone)
+                    {
+                        Log.Warning(_log, "Event slice not gone: {0}", url);
+                        return StreamEventsSlice.StreamDeleted();
+                    }
+
+                    if (!result.IsSuccessStatusCode)
+                    {
+                        Log.Warning(_log, "Event slice: other error ({0}): {1}", result.StatusCode.ToString(), url);
+                        throw new EventStoreHttpException(await result.Content.ReadAsStringAsync(), result.ReasonPhrase,
+                            result.StatusCode);
+                    }
+
+                    var content = await result.Content.ReadAsStringAsync();
+                    var eventInfo = JsonConvert.DeserializeObject<StreamEventsSlice>(content);
+                    eventInfo.Status = StreamReadStatus.Success;
+                    eventInfo.Entries.Reverse(); //atom lists things backward
+
+                    return eventInfo;
+                }
+                catch (Exception ex)
+                {
+                    HandleError(ex);
+                    throw;
                 }
 
-                if (result.StatusCode == HttpStatusCode.Gone)
-                {
-                    Log.Warning(_log, "Event slice not gone: {0}", url);
-                    return StreamEventsSlice.StreamDeleted();
-                }
-
-                if (!result.IsSuccessStatusCode)
-                {
-                    Log.Warning(_log, "Event slice: other error ({0}): {1}", result.StatusCode.ToString(), url);
-                    throw new EventStoreHttpException(await result.Content.ReadAsStringAsync(), result.ReasonPhrase, result.StatusCode);
-                }
-
-                var content = await result.Content.ReadAsStringAsync();
-                var eventInfo = JsonConvert.DeserializeObject<StreamEventsSlice>(content);
-                eventInfo.Status = StreamReadStatus.Success;
-                eventInfo.Entries.Reverse();//atom lists things backward
-
-                return eventInfo;
             }
         }
 
@@ -217,5 +230,14 @@ namespace JustGiving.EventStore.Http.Client
             }
             return handler;
         }
+
+        public void HandleError(Exception ex)
+        {
+            if (_errorHandler != null)
+            {
+                _errorHandler(this, ex);
+            }
+        }
+
     }
 }
