@@ -22,6 +22,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{22B8A670-65EE-4AB4-8D2F-4D5326BA41D3}"
+	ProjectSection(SolutionItems) = preProject
+		build.cmd = build.cmd
+		build.ps1 = build.ps1
+		jg-build-psake.ps1 = jg-build-psake.ps1
+		psake.psm1 = psake.psm1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{4D17782C-9F48-44D3-8880-44F9266FFCD5}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\packages.config = .nuget\packages.config
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,5 +71,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0066C550-5C6F-41A5-852B-C7F42E00870B} = {2A3E071F-F877-4E12-85B0-999CCEFF0A32}
+		{22B8A670-65EE-4AB4-8D2F-4D5326BA41D3} = {68A1CBF0-ADBC-43AF-841A-312F34071DC0}
 	EndGlobalSection
 EndGlobal

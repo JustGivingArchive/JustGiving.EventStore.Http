@@ -11,11 +11,10 @@
 [Dd]ebugPublic/
 [Rr]elease/
 x64/
-build/
-bld/
 [Bb]in/
 [Oo]bj/
-
+output/
+src/*.nupkg
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*

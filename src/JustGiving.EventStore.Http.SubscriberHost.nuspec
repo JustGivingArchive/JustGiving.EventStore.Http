@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>JustGiving.EventStore.Http.SubscriberHost</id>
+    <title>JustGiving.EventStore.Http.SubscriberHost</title>
+    <version>0.1404.2917.3030</version>
+    <authors>JustGiving</authors>
+    <owners>JustGiving</owners>
+    <summary>JustGiving.EventStore.Http.SubscriberHost</summary>
+    <description>EventStore subscriber, using the JustGiving.EventStore.Http.Client library.</description>
+    <projectUrl>https://githttps://github.com/JustGiving/JustGiving.EventStore.Http</projectUrl>
+    <tags>EventStore event store soa http</tags>
+    <licenseUrl>https://github.com/JustGiving/JustGiving.EventStore.Http</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <releaseNotes>
+    </releaseNotes>
+    <copyright>JustGiving 2014</copyright>
+    <dependencies>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="*.*" target="application" />
+  </files>
+</package>

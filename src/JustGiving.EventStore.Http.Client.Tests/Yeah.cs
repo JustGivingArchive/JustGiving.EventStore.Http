@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace JustGiving.EventStore.Http.Client.Tests
 {
-    [TestFixture]
+    //[TestFixture]
     public class TestHarness
     {
         private const string StreamName = "JonsDonations";
@@ -17,7 +17,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
             _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, new HttpClientProxy(), "http://127.0.0.1:9113", "ShinyConnection");
         }
 
-        [Test]
+        //[Test]
         public async void Load()
         {
             await Insert(2);
@@ -41,7 +41,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
             }
         }
 
-        [Test]
+        //[Test]
         public async void Retrieve()
         {
             var @event = await _connection.ReadEventAsync(StreamName, 6);
@@ -51,13 +51,13 @@ namespace JustGiving.EventStore.Http.Client.Tests
 
         }
 
-        [Test]
+        //[Test]
         public async void ListForwards()
         {
             var @event = await _connection.ReadStreamEventsForwardAsync(StreamName, 10, 5);
         }
 
-        [Test]
+        //[Test]
         public async void HeadShouldNotBeCached()
         {
             await Insert(1);
