@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>JustGiving.EventStore.Http.SubscriberHost.Ninject</id>
+    <title>Ninject bindings for the EventStore subscriber host</title>
+    <version>0.1404.3017.0630</version>
+    <authors>JustGiving</authors>
+    <owners>JustGiving</owners>
+    <summary>JustGiving.EventStore.Http.SubscriberHost.Ninject</summary>
+    <description>Ninject bindings for the JG EventStore Http subscriber, used for instantiating event handlers for subscribed messages</description>
+    <projectUrl>https://githttps://github.com/JustGiving/JustGiving.EventStore.Http</projectUrl>
+    <tags>EventStore event store soa http ninject subscribe</tags>
+    <licenseUrl>https://github.com/JustGiving/JustGiving.EventStore.Http</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <releaseNotes>
+    </releaseNotes>
+    <copyright>JustGiving 2014</copyright>
+    <dependencies>
+      <group>
+        <dependency id="JustGiving.EventStore.Http.SubscriberHost" />
+        <dependency id="Ninject" version="3.0.0.0" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="**\*.cs" target="src" />
+    <file src="JustGiving.EventStore.Http.SubscriberHost.Ninject.dll" target="lib\net45" />
+    <file src="JustGiving.EventStore.Http.SubscriberHost.Ninject.pdb" target="lib\net45" />
+  </files>
+</package>
