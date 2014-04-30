@@ -3,7 +3,7 @@
   <metadata>
     <id>JustGiving.EventStore.Http.SubscriberHost</id>
     <title>JustGiving.EventStore.Http.SubscriberHost</title>
-    <version>0.1404.2917.3030</version>
+    <version>1.0.0.0</version>
     <authors>JustGiving</authors>
     <owners>JustGiving</owners>
     <summary>JustGiving.EventStore.Http.SubscriberHost</summary>
@@ -16,9 +16,15 @@
     </releaseNotes>
     <copyright>JustGiving 2014</copyright>
     <dependencies>
+      <group>
+        <dependency id="JustGiving.EventStore.Http.Client" />
+        <dependency id="log4net" />
+      </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="*.*" target="application" />
+    <file src="**\*.cs" target="src" />
+    <file src="JustGiving.EventStore.Http.SubscriberHost.dll" target="lib\net45" />
+    <file src="JustGiving.EventStore.Http.SubscriberHost.pdb" target="lib\net45" />
   </files>
 </package>

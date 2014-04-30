@@ -27,6 +27,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{22B8A670
 		build.cmd = build.cmd
 		build.ps1 = build.ps1
 		jg-build-psake.ps1 = jg-build-psake.ps1
+		JustGiving.EventStore.Http.Client.nuspec = JustGiving.EventStore.Http.Client.nuspec
+		JustGiving.EventStore.Http.SubscriberHost.nuspec = JustGiving.EventStore.Http.SubscriberHost.nuspec
 		psake.psm1 = psake.psm1
 	EndProjectSection
 EndProject
