@@ -12,9 +12,9 @@
   $NugetPackages = @("JustGiving.EventStore.Http.Client", "JustGiving.EventStore.Http.SubscriberHost", "JustGiving.EventStore.Http.SubscriberHost.Ninject")
 }
 
-task default -depends Init, Clean, GetPackages, WriteNuspecNuget, Compile, PatchTransformedConfigFile, Test, PackageNuget, PushNuget, Cleanup
+task default -depends Init, Clean, GetPackages, WriteNuspecNuget, Compile, Test, PackageNuget, PushNuget, Cleanup
 
-task local -depends Init, Clean, GetPackages, WriteNuspecNuget, Compile, PatchTransformedConfigFile, Test, PackageNuget, Cleanup 
+task local -depends Init, Clean, GetPackages, WriteNuspecNuget, Compile, Test, PackageNuget, Cleanup 
 
 task Init {
 	
@@ -112,38 +112,15 @@ function Create-Package{
 	Copy-item -Recurse .\$packageName\output $fullFolder\
 	Copy-item -Recurse -Force -Filter *.cs .\$packageName\ $Build_Artifacts\
 	Copy-item $nuspec $fullFolder\
-	
+	Write-Host "Packaging: $fullFolder\$nuspec"
 	Exec { .\NuGet.exe pack "$fullFolder\$nuspec" -BasePath $fullFolder -outputdirectory . -Symbols}
 }
 
 task PushNuget -precondition { return ($NugetPackages -ne $null) } {
+	
 	foreach ($package in $NugetPackages)
 	{
 		Push-Package -PackageName $package -Type "nuget"
-	}
-}
-
-task PatchTransformedConfigFile {
-
-	$lookupTable = @{
-	'&gt;' = '>' 
-	'&lt;' = '<' 
-	}
-	
-	$configs = Get-ChildItem -recurse | where-object {$_.Name.EndsWith(".Deployed.config.transformed")}
-	foreach ($path in $configs)
-	{		
-		Get-Content -Path $path.FullName | ForEach-Object { 
-	    $line = $_
-
-	    $lookupTable.GetEnumerator() | ForEach-Object {
-	        if ($line -match $_.Key)
-	        {
-	            $line = $line -replace $_.Key, $_.Value
-	        }
-	    }
-	    $line
-	    } | Set-Content -Path "$($path.FullName).erb"		
 	}
 }
 
@@ -161,8 +138,6 @@ function Push-Package
 {
 	param($packageName, $type)
 	
-	
-
 	$packages = gci *.nupkg | Where-Object {$_.name.StartsWith($packageName)} | `
 	Foreach-Object{ 
 		Write-Host "Pushing package $($_.name)..."
