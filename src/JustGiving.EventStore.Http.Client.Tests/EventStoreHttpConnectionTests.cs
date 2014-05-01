@@ -22,19 +22,21 @@ namespace JustGiving.EventStore.Http.Client.Tests
         Mock<IHttpClientProxy> _httpClientProxyMock;
         private ConnectionSettings _defaultConnectionSettings;
         private EventStoreHttpConnection _connection;
+        private ConnectionSettingsBuilder _connectionSettingsBuilder;
 
         [SetUp]
         public void Setup()
         {
             _httpClientProxyMock = new Mock<IHttpClientProxy>();
             _defaultConnectionSettings = GetConnectionSettings();
-            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(_defaultConnectionSettings, _httpClientProxyMock.Object, Endpoint, ConectionName);
+            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(_defaultConnectionSettings, Endpoint);
         }
 
         [Test]
         public void GetHandler_WhenNoDefaultCredentialsAreConfigured_TheClientShouldNotHaveAnyCredentials()
         {
-            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(ConnectionSettings.Default, _httpClientProxyMock.Object, Endpoint, ConectionName);
+            var builder = new ConnectionSettingsBuilder().WithHttpClientProxy(_httpClientProxyMock.Object);
+            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(builder, Endpoint);
 
             var handler = _connection.GetHandler();
             handler.Credentials.Should().BeNull();
@@ -53,7 +55,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public void GetClient_WhenNoDefaultTimeoutIsConfigured_TheClientShouldBe100Seconds()
         {
-            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(ConnectionSettings.Default, _httpClientProxyMock.Object, Endpoint, ConectionName);
+            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(ConnectionSettings.Default, Endpoint);
 
             var client = _connection.GetClient();
             client.Timeout.Should().Be(TimeSpan.FromSeconds(100));
@@ -393,7 +395,8 @@ namespace JustGiving.EventStore.Http.Client.Tests
         {
             var cs = new ConnectionSettingsBuilder()
                 .SetDefaultUserCredentials(new UserCredentials(Username, Password))
-                .WithConnectionTimeoutOf(TimeSpan.FromSeconds(30));
+                .WithConnectionTimeoutOf(TimeSpan.FromSeconds(30))
+                .WithHttpClientProxy(_httpClientProxyMock.Object);
 
             return cs;
         }

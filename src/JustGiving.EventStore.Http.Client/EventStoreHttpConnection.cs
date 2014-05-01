@@ -23,42 +23,36 @@ namespace JustGiving.EventStore.Http.Client
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
         /// </summary>
         /// <param name="connectionSettings">The <see cref="ConnectionSettings"/> to apply to the new connection</param>
-        /// <param name="httpClientProxy">Shim to abstract non-mockable httpclient</param>
         /// <param name="endpoint">The endpoint to connect to.</param>
-        /// <param name="connectionName">Optional name of connection (will be generated automatically, if not provided)</param>
         /// <returns>a new <see cref="IEventStoreHttpConnection"/></returns>
-        public static IEventStoreHttpConnection Create(ConnectionSettings connectionSettings, IHttpClientProxy httpClientProxy, string endpoint, string connectionName = null)
+        public static IEventStoreHttpConnection Create(ConnectionSettings connectionSettings, string endpoint)
         {
-            return new EventStoreHttpConnection(connectionSettings, httpClientProxy, endpoint, connectionName);
+            return new EventStoreHttpConnection(connectionSettings, endpoint);
         }
 
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
         /// </summary>
-        /// <param name="httpClientProxy">Shim to abstract non-mockable httpclient</param>
         /// <param name="endpoint">The endpoint to connect to.</param>
-        /// <param name="connectionName">Optional name of connection (will be generated automatically, if not provided)</param>
         /// <returns>a new <see cref="IEventStoreHttpConnection"/></returns>
-        public static IEventStoreHttpConnection Create(IHttpClientProxy httpClientProxy, string endpoint, string connectionName = null)
+        public static IEventStoreHttpConnection Create(string endpoint)
         {
-            return new EventStoreHttpConnection(ConnectionSettings.Default, httpClientProxy, endpoint, connectionName);
+            return new EventStoreHttpConnection(ConnectionSettings.Default, endpoint);
         }
 
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using specific <see cref="ConnectionSettings"/>
         /// </summary>
         /// <param name="settings">The <see cref="ConnectionSettings"/> to apply to the new connection</param>
-        /// <param name="httpClientProxy">Shim to abstract non-mockable httpclient</param>
         /// <param name="endpoint">The endpoint to connect to.</param>
-        /// <param name="connectionName">Optional name of connection (will be generated automatically, if not provided)</param>
         /// <returns>a new <see cref="IEventStoreHttpConnection"/></returns>
-        internal EventStoreHttpConnection(ConnectionSettings settings, IHttpClientProxy httpClientProxy, string endpoint, string connectionName = null)
+        internal EventStoreHttpConnection(ConnectionSettings settings, string endpoint)
         {
             Ensure.NotNull(settings, "settings");
             Ensure.NotNull(endpoint, "endpoint");
 
-            _connectionName = connectionName ?? string.Format("ES-{0}", Guid.NewGuid());
-            _httpClientProxy = httpClientProxy;
+            
+            _httpClientProxy = settings.HttpClientProxy;
             _settings = settings;
             _log = settings.Log;
             _endpoint = endpoint;

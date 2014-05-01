@@ -56,5 +56,44 @@ namespace JustGiving.EventStore.Http.Client.Tests
             ((ConnectionSettings)builder).Log.Should().BeNull();
         }
 
+        [Test]
+        public void WithHttpClientProxy_ShouldStoreRequiredHttpClientProxy()
+        {
+            var expected = Mock.Of<IHttpClientProxy>();
+            var builder = new ConnectionSettingsBuilder();
+            builder.WithHttpClientProxy(expected);
+
+            ((ConnectionSettings)builder).HttpClientProxy.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenHttpClientProxyNotSet_ShouldDefaultToAHttpClientProxy()
+        {
+            var builder = new ConnectionSettingsBuilder();
+            ((ConnectionSettings)builder).HttpClientProxy.Should().NotBeNull();
+        }
+
+        [Test]
+        public void WithConnectionName_ShouldStoreGivenConnectionName()
+        {
+            var expected = "SuperName9000";
+            var builder = new ConnectionSettingsBuilder();
+            builder.WithConnectionName(expected);
+
+            ((ConnectionSettings)builder).ConnectionName.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenConnectionNameNotSet_ShouldDefaultToAUniqueConnectionName()
+        {
+            var builder = new ConnectionSettingsBuilder();
+            var connectionName = ((ConnectionSettings)builder).ConnectionName;
+            connectionName.Should().NotBeNull();
+            connectionName.Should().StartWith("ES-");
+            var expectedGuid = connectionName.Substring(3);
+            Guid parsed;
+            Guid.TryParse(expectedGuid, out parsed).Should().BeTrue();
+        }
+
     }
 }

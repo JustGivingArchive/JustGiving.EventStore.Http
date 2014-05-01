@@ -5,12 +5,14 @@ namespace JustGiving.EventStore.Http.Client
 {
     public sealed class ConnectionSettings
     {
-        public ConnectionSettings(UserCredentials defaultUserCredentials, TimeSpan? connectionTimeout, Action<IEventStoreHttpConnection, Exception> errorHandler, ILog log)
+        public ConnectionSettings(UserCredentials defaultUserCredentials, TimeSpan? connectionTimeout, Action<IEventStoreHttpConnection, Exception> errorHandler, ILog log, IHttpClientProxy httpClientProxy, string connectionName)
         {
             DefaultUserCredentials = defaultUserCredentials;
             ConnectionTimeout = connectionTimeout;
             ErrorHandler = errorHandler;
             Log = log;
+            HttpClientProxy = httpClientProxy;
+            ConnectionName = connectionName;
         }
 
         //An implicit cast is going on....
@@ -19,7 +21,13 @@ namespace JustGiving.EventStore.Http.Client
         /// <summary>
         /// The default <see cref="ConnectionSettings"></see>
         /// </summary>
-        public static ConnectionSettings Default { get { return DefaultSettings.Value; } }
+        public static ConnectionSettings Default
+        {
+            get
+            {
+                return DefaultSettings.Value;
+            } 
+        }
 
         /// <summary>
         /// Creates a new set of <see cref="ConnectionSettings"/>
@@ -34,5 +42,7 @@ namespace JustGiving.EventStore.Http.Client
         public TimeSpan? ConnectionTimeout { get; private set; }
         public Action<IEventStoreHttpConnection, Exception> ErrorHandler { get; private set; }
         public ILog Log { get; private set; }
+        public IHttpClientProxy HttpClientProxy { get; private set; }
+        public string ConnectionName { get; private set; }
     }
 }

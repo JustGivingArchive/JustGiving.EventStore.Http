@@ -26,13 +26,18 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [SetUp]
         public void Setup()
         {
+
+
+
+
             _eventStoreHttpConnectionMock = new Mock<IEventStoreHttpConnection>();
             _eventHandlerResolverMock = new Mock<IEventHandlerResolver>();
             _streamPositionRepositoryMock = new Mock<IStreamPositionRepository>();
             _subscriptionTimerManagerMock = new Mock<ISubscriptionTimerManager>();
             _eventTypeResolverMock = new Mock<IEventTypeResolver>();
 
-            _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object, _subscriptionTimerManagerMock.Object, new EventTypeResolver());
+            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).WithCustomSubscriptionTimerManager(_subscriptionTimerManagerMock.Object);
+            _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
         }
 
         [Test]
@@ -52,7 +57,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [Test]
         public void SubscribeTo_ShouldInvokeSubscriptionManagerWithDefaultPeriodIfNoneIsPassed()
         {
-            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object, _subscriptionTimerManagerMock.Object, _eventTypeResolverMock.Object).WithDefaultPollingInterval(TimeSpan.FromDays(456));
+            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithDefaultPollingInterval(TimeSpan.FromDays(456)).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).WithCustomSubscriptionTimerManager(_subscriptionTimerManagerMock.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
             _subscriber.SubscribeTo(It.IsAny<string>());
             _subscriptionTimerManagerMock.Verify(x => x.Add(It.IsAny<string>(), TimeSpan.FromDays(456), It.IsAny<Func<Task>>()));
@@ -139,7 +144,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public async void InvokeMessageHandlersForEventMessageAsync_ShouldRequestCorrectHandlers()
         {
             var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName });
-
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(SomeEvent));
             await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
 
             _eventHandlerResolverMock.Verify(x => x.GetHandlersFor(typeof(SomeEvent)));
@@ -153,6 +158,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             
             var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName, Content = new RecordedEvent {Data = new JObject()} });
 
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof (SomeEvent));
             _eventHandlerResolverMock.Setup(x => x.GetHandlersFor(typeof(SomeEvent))).Returns(new IHandleEventsOf<SomeEvent>[] { @implicit , @explicit});
 
             await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);

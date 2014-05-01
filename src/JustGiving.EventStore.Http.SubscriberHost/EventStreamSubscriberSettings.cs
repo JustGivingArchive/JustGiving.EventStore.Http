@@ -6,12 +6,12 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriberSettings
     {
-        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager _subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int? maxConcurrency, int sliceSize, ILog log)
+        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int? maxConcurrency, int sliceSize, ILog log)
         {
             Connection = connection;
             EventHandlerResolver = eventHandlerResolver;
             StreamPositionRepository = streamPositionRepository;
-            SubscriptionTimerManager = _subscriptionTimerManager;
+            SubscriptionTimerManager = subscriptionTimerManager;
             EventTypeResolver = eventTypeResolver;
             MaxConcurrency = maxConcurrency;
             DefaultPollingInterval = pollingInterval;
@@ -23,9 +23,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// Creates a new set of <see cref="EventStreamSubscriberSettings"/>
         /// </summary>
         /// <returns>A <see cref="EventStreamSubscriberSettings"/> that can be used to build up an <see cref="EventStreamSubscriber"/></returns>
-        public static EventStreamSubscriberSettings Default(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver)
+        public static EventStreamSubscriberSettings Default(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository)
         {
-            return new EventStreamSubscriberSettingsBuilder(connection, eventHandlerResolver, streamPositionRepository, subscriptionTimerManager, eventTypeResolver);
+            return new EventStreamSubscriberSettingsBuilder(connection, eventHandlerResolver, streamPositionRepository);
         }
 
         public IEventStoreHttpConnection Connection { get; private set; }

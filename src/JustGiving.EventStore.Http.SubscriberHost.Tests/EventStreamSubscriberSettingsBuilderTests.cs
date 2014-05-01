@@ -14,7 +14,6 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         private Mock<IEventStoreHttpConnection> _connectionMock;
         private Mock<IEventHandlerResolver> _eventHandlerResolverMock;
         private Mock<IStreamPositionRepository> _streamPositionRepositoryMock;
-        private Mock<ISubscriptionTimerManager> _subscriptionTimerManagerMock;
         private Mock<IEventTypeResolver> _eventTypeResolverMock;
         private EventStreamSubscriberSettingsBuilder _builder;
 
@@ -24,10 +23,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _connectionMock = new Mock<IEventStoreHttpConnection>();
             _eventHandlerResolverMock = new Mock<IEventHandlerResolver>();
             _streamPositionRepositoryMock = new Mock<IStreamPositionRepository>();
-            _subscriptionTimerManagerMock = new Mock<ISubscriptionTimerManager>();
             _eventTypeResolverMock = new Mock<IEventTypeResolver>();
 
-            _builder = new EventStreamSubscriberSettingsBuilder(_connectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object, _subscriptionTimerManagerMock.Object, _eventTypeResolverMock.Object);
+            _builder = new EventStreamSubscriberSettingsBuilder(_connectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object);
         }
 
         [Test]
@@ -88,6 +86,36 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public void WhenLoggerNotSet_ShouldDefaultToNull()
         {
             ((EventStreamSubscriberSettings)_builder).Log.Should().BeNull();
+        }
+
+        [Test]
+        public void WithCustomEventTypeResolver_ShouldStoreRequiredEventTypeResolver()
+        {
+            var expected = Mock.Of<IEventTypeResolver>();
+            _builder.WithCustomEventTypeResolver(expected);
+
+            ((EventStreamSubscriberSettings)_builder).EventTypeResolver.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenEventTypeResolverNotSet_ShouldDefaultToTheStandardEventTypeResolver()
+        {
+            ((EventStreamSubscriberSettings)_builder).EventTypeResolver.Should().NotBeNull();
+        }
+
+        [Test]
+        public void WithCustomSubscriptionTimerManager_ShouldStoreRequiredEventTypeResolver()
+        {
+            var expected = Mock.Of<ISubscriptionTimerManager>();
+            _builder.WithCustomSubscriptionTimerManager(expected);
+
+            ((EventStreamSubscriberSettings)_builder).SubscriptionTimerManager.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenSubscriptionTimerManagerNotSet_ShouldDefaultToTheStandardSubscriptionTimerManager()
+        {
+            ((EventStreamSubscriberSettings)_builder).SubscriptionTimerManager.Should().NotBeNull();
         }
     }
 }

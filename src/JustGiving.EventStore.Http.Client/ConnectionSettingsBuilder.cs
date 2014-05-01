@@ -6,9 +6,11 @@ namespace JustGiving.EventStore.Http.Client
     public class ConnectionSettingsBuilder
     {
         private UserCredentials _defaultUserCredentials;
-        private TimeSpan? _connectionTimeout;
+        private TimeSpan? _connectionTimeout = TimeSpan.FromSeconds(100);
         private Action<IEventStoreHttpConnection, Exception> _errorHandler;
         private ILog _log;
+        private IHttpClientProxy _httpClientProxy = new HttpClientProxy();
+        private string _connectionName;
 
         public ConnectionSettingsBuilder SetDefaultUserCredentials(UserCredentials credentials)
         {
@@ -34,9 +36,21 @@ namespace JustGiving.EventStore.Http.Client
             return this;
         }
 
+        public ConnectionSettingsBuilder WithHttpClientProxy(IHttpClientProxy httpClientProxy)
+        {
+            _httpClientProxy = httpClientProxy;
+            return this;
+        }
+
+        public ConnectionSettingsBuilder WithConnectionName(string connectionName)
+        {
+            _connectionName = connectionName;
+            return this;
+        }
+
         public static implicit operator ConnectionSettings(ConnectionSettingsBuilder builder)
         {
-            return new ConnectionSettings(builder._defaultUserCredentials, builder._connectionTimeout, builder._errorHandler, builder._log);
+            return new ConnectionSettings(builder._defaultUserCredentials, builder._connectionTimeout, builder._errorHandler, builder._log, builder._httpClientProxy, builder._connectionName ?? string.Format("ES-{0}", Guid.NewGuid()));
         }
     }
 }

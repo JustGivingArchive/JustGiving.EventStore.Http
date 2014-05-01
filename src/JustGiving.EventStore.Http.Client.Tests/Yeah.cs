@@ -14,7 +14,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [SetUp]
         public void Setup()
         {
-            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, new HttpClientProxy(), "http://127.0.0.1:9113", "ShinyConnection");
+            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, "http://127.0.0.1:9113");
         }
 
         //[Test]
@@ -44,16 +44,16 @@ namespace JustGiving.EventStore.Http.Client.Tests
         //[Test]
         public async void Retrieve()
         {
-            var @event = await _connection.ReadEventAsync(StreamName, 6);
-
-
+            await Insert(7);
             var event1 = await _connection.ReadEventAsync(StreamName, 4);
 
+            var event2 = await _connection.ReadEventAsync(StreamName, 6);
         }
 
         //[Test]
         public async void ListForwards()
         {
+            await Insert(20);
             var @event = await _connection.ReadStreamEventsForwardAsync(StreamName, 10, 5);
         }
 
