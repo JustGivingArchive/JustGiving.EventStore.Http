@@ -57,6 +57,7 @@ namespace JustGiving.EventStore.Http.Client
             _log = settings.Log;
             _endpoint = endpoint;
             _errorHandler = settings.ErrorHandler;
+            _connectionName = settings.ConnectionName;
         }
 
         public string ConnectionName { get { return _connectionName; } }

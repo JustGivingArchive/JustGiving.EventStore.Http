@@ -14,7 +14,6 @@ namespace JustGiving.EventStore.Http.Client.Tests
     public class EventStoreHttpConnectionTests
     {
         private const string Endpoint = "http://some-endpoint";
-        private const string ConectionName = "some-name";
         private const string StreamName = "some-stream";
         private const string Username = "some-user";
         private const string Password = "some-password";
@@ -22,7 +21,6 @@ namespace JustGiving.EventStore.Http.Client.Tests
         Mock<IHttpClientProxy> _httpClientProxyMock;
         private ConnectionSettings _defaultConnectionSettings;
         private EventStoreHttpConnection _connection;
-        private ConnectionSettingsBuilder _connectionSettingsBuilder;
 
         [SetUp]
         public void Setup()
