@@ -138,7 +138,7 @@ function Push-Package
 {
 	param($packageName, $type)
 	
-	$packages = gci *.nupkg | Where-Object {$_.name.StartsWith($packageName)} | `
+	$packages = gci *.nupkg | Where-Object {$_.name.StartsWith("$packageName.$version")} | `
 	Foreach-Object{ 
 		Write-Host "Pushing package $($_.name)..."
 		Exec { .\nuget.exe setApiKey $global:PublicNugetApiKey }
