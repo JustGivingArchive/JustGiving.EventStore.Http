@@ -92,27 +92,31 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             Log.Info(_log, "Begin reading event metadata for {0}", stream);
             var processingBatch = await _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize);
-            Log.Info(_log, "Finished reading event metadata for {0}", stream);
+            Log.Info(_log, "Finished reading event metadata for {0}: {1}", stream, processingBatch.Status);
 
-            Log.Info(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
-            foreach (var message in processingBatch.Entries)
+            if (processingBatch.Status == StreamReadStatus.Success)
             {
-                Log.Info(_log, "Processing event {0} from {1}", message.Id);
-                await InvokeMessageHandlersForStreamMessageAsync(stream, message);
-                Log.Info(_log, "Processed event {0} from {1}", message.Id);
-            }
+                Log.Info(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
+                foreach (var message in processingBatch.Entries)
+                {
+                    Log.Info(_log, "Processing event {0} from {1}", message.Id, stream);
+                    await InvokeMessageHandlersForStreamMessageAsync(stream, message);
+                    Log.Info(_log, "Processed event {0} from {1}", message.Id, stream);
+                }
 
-            if (processingBatch.Entries.Any())
-            {
-                Log.Info(_log, "New items in stream {0} were found; repolling", stream);
-                await PollAsync(stream);
-                return;
+                if (processingBatch.Entries.Any())
+                {
+                    Log.Info(_log, "New items in stream {0} were found; repolling", stream);
+                    await PollAsync(stream);
+                    return;
+                }
             }
 
             lock (_synchroot)
             {
                 _subscriptionTimerManager.Resume(stream);
             }
+            
             Log.Info(_log, "Finished polling {0}", stream);
         }
 
@@ -125,42 +129,53 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public async Task InvokeMessageHandlersForEventMessageAsync(string stream, EventReadResult eventReadResult)
         {
-            var eventType = _eventTypeResolver.Resolve(eventReadResult.EventInfo.Summary);
-            var handlers = _eventHandlerResolver.GetHandlersFor(eventType);
+            var typeName = eventReadResult.EventInfo.Summary;
+            var eventType = _eventTypeResolver.Resolve(typeName);
 
-            foreach (var handler in handlers)
+            if (eventType == null)
             {
-                var handlerType = handler.GetType();
+                Log.Warning(_log, "No event handlers found for {0}", typeName);
+            }
+            else
+            {
+                var handlers = _eventHandlerResolver.GetHandlersFor(eventType);
 
-                var handleMethod = GetMethodFromHandler(handlerType, eventType, "Handle");
-
-                if (handleMethod == null)
+                foreach (var handler in handlers)
                 {
-                    continue;
-                }
+                    var handlerType = handler.GetType();
 
-                try
-                {
-                    var eventJObject = eventReadResult.EventInfo.Content.Data;
-                    var @event = eventJObject == null ? null : @eventJObject.ToObject(eventType);
+                    var handleMethod = GetMethodFromHandler(handlerType, eventType, "Handle");
+
+                    if (handleMethod == null)
+                    {
+                        continue;
+                    }
 
                     try
                     {
-                        await (Task) handleMethod.Invoke(handler, new[] {@event});
-                    }
-                    catch (Exception invokeException)
-                    {
-                        var errorMessage = string.Format("{0} thrown processing event {1}", invokeException.GetType().FullName, @eventReadResult.EventInfo.Id);
-                        Log.Error(_log, errorMessage, invokeException);
+                        var eventJObject = eventReadResult.EventInfo.Content.Data;
+                        var @event = eventJObject == null ? null : @eventJObject.ToObject(eventType);
 
-                        var errorMethod = GetMethodFromHandler(handlerType, eventType, "OnError");
-                        errorMethod.Invoke(handler, new[] { invokeException, @event });
+                        try
+                        {
+                            await (Task) handleMethod.Invoke(handler, new[] {@event});
+                        }
+                        catch (Exception invokeException)
+                        {
+                            var errorMessage = string.Format("{0} thrown processing event {1}",
+                                invokeException.GetType().FullName, @eventReadResult.EventInfo.Id);
+                            Log.Error(_log, errorMessage, invokeException);
+
+                            var errorMethod = GetMethodFromHandler(handlerType, eventType, "OnError");
+                            errorMethod.Invoke(handler, new[] {invokeException, @event});
+                        }
                     }
-                }
-                catch (Exception deserialisationException)
-                {
-                    var errorMessage = string.Format("{0} thrown rehydrating event {1}", deserialisationException.GetType().FullName, @eventReadResult.EventInfo.Id);
-                    Log.Error(_log, errorMessage, deserialisationException);
+                    catch (Exception deserialisationException)
+                    {
+                        var errorMessage = string.Format("{0} thrown rehydrating event {1}",
+                            deserialisationException.GetType().FullName, @eventReadResult.EventInfo.Id);
+                        Log.Error(_log, errorMessage, deserialisationException);
+                    }
                 }
             }
 

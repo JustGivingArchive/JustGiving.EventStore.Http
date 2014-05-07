@@ -13,7 +13,7 @@ namespace JustGiving.EventStore.Http.Client
         {
             get
             {
-                var idString = Id.Split('@')[0];
+                var idString = Title.Split('@')[0];
                 return int.Parse(idString);
             }
         }

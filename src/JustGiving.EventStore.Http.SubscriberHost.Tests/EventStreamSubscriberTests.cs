@@ -26,10 +26,6 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [SetUp]
         public void Setup()
         {
-
-
-
-
             _eventStoreHttpConnectionMock = new Mock<IEventStoreHttpConnection>();
             _eventHandlerResolverMock = new Mock<IEventHandlerResolver>();
             _streamPositionRepositoryMock = new Mock<IStreamPositionRepository>();
@@ -128,6 +124,19 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName), Times.Exactly(3));
             _subscriptionTimerManagerMock.Verify(x => x.Resume(StreamName), Times.Once);
+        }
+
+        [Test]
+        public async Task PollAsync_IfUnsuccessful_ShouldNotTryToProcessResults()
+        {
+            var result = new StreamEventsSlice
+            {
+                Status = StreamReadStatus.StreamNotFound,
+                Entries = null
+            };
+
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => result);
+            await _subscriber.PollAsync(StreamName);
         }
 
         [Test]
