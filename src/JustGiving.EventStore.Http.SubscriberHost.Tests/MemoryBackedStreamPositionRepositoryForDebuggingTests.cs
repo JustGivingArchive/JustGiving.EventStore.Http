@@ -8,28 +8,34 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
     public class MemoryBackedStreamPositionRepositoryForDebuggingTests
     {
         [Test]
-        public void GetPositionFor_ShouldReturnNullWhenNoStreamCanBeFound()
+        public async void GetPositionFor_ShouldReturnNullWhenNoStreamCanBeFound()
         {
             var sut = new MemoryBackedStreamPositionRepositoryForDebugging();
-            sut.GetPositionFor("abc").Should().NotHaveValue();
+            var result = await sut.GetPositionForAsync("abc");
+            result.Should().NotHaveValue();
         }
 
         [Test]
-        public void GetPositionFor_ShouldReturnStoredValueWhenNoStreamCanBeFound()
+        public async void GetPositionFor_ShouldReturnStoredValueWhenNoStreamCanBeFound()
         {
             var sut = new MemoryBackedStreamPositionRepositoryForDebugging();
-            sut.SetPositionFor("abc", 123);
-            sut.GetPositionFor("abc").Should().Be(123);
+            await sut.SetPositionForAsync("abc", 123);
+            var result = await sut.GetPositionForAsync("abc");
+            result.Should().Be(123);
         }
 
         [Test]
-        public void ShouldWorkForMultipleKeys()
+        public async void ShouldWorkForMultipleKeys()
         {
             var sut = new MemoryBackedStreamPositionRepositoryForDebugging();
-            sut.SetPositionFor("abc", 123);
-            sut.SetPositionFor("def", 456);
-            sut.GetPositionFor("abc").Should().Be(123);
-            sut.GetPositionFor("def").Should().Be(456);
+            await sut.SetPositionForAsync("abc", 123);
+            await sut.SetPositionForAsync("def", 456);
+
+            var result = await sut.GetPositionForAsync("abc");
+            result.Should().Be(123);
+
+            result = await sut.GetPositionForAsync("def");
+            result.Should().Be(456);
         }
     }
 }

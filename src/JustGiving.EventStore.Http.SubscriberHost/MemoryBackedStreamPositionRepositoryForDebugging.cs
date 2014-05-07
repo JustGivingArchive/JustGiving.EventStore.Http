@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
 {
@@ -6,8 +7,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
     {
         ConcurrentDictionary<string, int> cache = new ConcurrentDictionary<string, int>();
 
-        public int? GetPositionFor(string stream)
+        public async Task<int?> GetPositionForAsync(string stream)
         {
+            await Task.FromResult(true);
             int position;
             if (cache.TryGetValue(stream, out position))
             {
@@ -17,9 +19,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             return null;
         }
 
-        public void SetPositionFor(string stream, int position)
+        public async Task SetPositionForAsync(string stream, int position)
         {
             cache[stream] = position;
+            await Task.FromResult(true);
         }
     }
 }

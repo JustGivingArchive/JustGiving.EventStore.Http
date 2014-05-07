@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.Client.Common.Utils;
@@ -86,7 +87,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 _subscriptionTimerManager.Pause(stream);
                 //we want to be able to cane a stream if we are not up to date, without reading it twice
             }
-            var lastPosition = _streamPositionRepository.GetPositionFor(stream) ?? 0;
+            var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream) ?? 0;
 
             Log.Info(_log, "Last position for stream {0} was {1}", stream, lastPosition);
 
@@ -180,11 +181,17 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 }
             }
 
-            lock (_synchroot)
+            Monitor.Enter(_synchroot);
+            try
             {
                 Log.Info(_log, "Storing last read event for {0} as {1}", stream, eventReadResult.SequenceNumber);
-                _streamPositionRepository.SetPositionFor(stream, eventReadResult.SequenceNumber);
+                await _streamPositionRepository.SetPositionForAsync(stream, eventReadResult.SequenceNumber);
             }
+            finally
+            {
+                Monitor.Exit(_synchroot);
+            }
+
         }
 
 

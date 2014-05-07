@@ -146,7 +146,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, result);
 
-            _streamPositionRepositoryMock.Verify(x => x.SetPositionFor(StreamName, 123));
+            _streamPositionRepositoryMock.Verify(x => x.SetPositionForAsync(StreamName, 123));
         }
 
         [Test]
