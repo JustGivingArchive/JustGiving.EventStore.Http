@@ -138,7 +138,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
             else
             {
-                var handlers = _eventHandlerResolver.GetHandlersFor(eventType);
+                var baseHandlerInterfaceType = typeof (IHandleEventsOf<>).MakeGenericType(eventType);
+                var handlers = _eventHandlerResolver.GetHandlersOf(baseHandlerInterfaceType);
 
                 foreach (var handler in handlers)
                 {
@@ -203,6 +204,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 Log.Warning(_log, "{0}, which handles {1} did not contain a suitable method named {2}", concreteHandlerType.FullName, eventType.FullName, methodName);
                 methodCache.Add(concreteHandlerType + methodName, result);
+                return null;
             }
 
 

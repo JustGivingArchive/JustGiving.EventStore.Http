@@ -109,7 +109,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var count = 0;
             var streamSliceResult = new StreamEventsSlice
             {
-                Entries = new List<BasicEventInfo> { new BasicEventInfo {Id="1@Stream"} }//Reflection ahoy
+                Entries = new List<BasicEventInfo> { new BasicEventInfo {Title= "1@Stream"} }//Reflection ahoy
             };
 
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => streamSliceResult).Callback(
@@ -156,7 +156,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(SomeEvent));
             await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
 
-            _eventHandlerResolverMock.Verify(x => x.GetHandlersFor(typeof(SomeEvent)));
+            _eventHandlerResolverMock.Verify(x => x.GetHandlersOf(typeof(IHandleEventsOf<SomeEvent>)));
         }
 
         [Test]
@@ -168,7 +168,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName, Content = new RecordedEvent {Data = new JObject()} });
 
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof (SomeEvent));
-            _eventHandlerResolverMock.Setup(x => x.GetHandlersFor(typeof(SomeEvent))).Returns(new IHandleEventsOf<SomeEvent>[] { @implicit , @explicit});
+            _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(typeof(IHandleEventsOf<SomeEvent>))).Returns(new IHandleEventsOf<SomeEvent>[] { @implicit , @explicit});
 
             await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
 

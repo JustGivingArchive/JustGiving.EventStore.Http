@@ -12,8 +12,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// <summary>
         /// Get all instances of <see cref="IHandleEventsOf{T}"/> where T is the eventType
         /// </summary>
-        /// <param name="eventType">The .Net event type read from the stream</param>
+        /// <param name="handlerType">The handler of the .Net event type read from the stream</param>
         /// <returns></returns>
-        IEnumerable GetHandlersFor(Type eventType);
+        IEnumerable GetHandlersOf(Type handlerType);
     }
 }

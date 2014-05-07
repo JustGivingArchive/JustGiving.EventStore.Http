@@ -13,7 +13,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Ninject
             _kernel = kernel;
         }
 
-        public IEnumerable GetHandlersFor(Type eventType)
+        public IEnumerable GetHandlersOf(Type eventType)
         {
             return _kernel.GetAll(eventType);
         }
