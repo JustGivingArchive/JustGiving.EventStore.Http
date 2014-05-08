@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -84,8 +85,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             Log.Info(_log, "Begin polling {0}", stream);
             lock (_synchroot)
             {
-                _subscriptionTimerManager.Pause(stream);
-                //we want to be able to cane a stream if we are not up to date, without reading it twice
+                _subscriptionTimerManager.Pause(stream);//we want to be able to cane a stream if we are not up to date, without reading it twice
             }
             var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream) ?? 0;
 
@@ -100,9 +100,26 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 Log.Info(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
                 foreach (var message in processingBatch.Entries)
                 {
-                    Log.Info(_log, "Processing event {0} from {1}", message.Id, stream);
-                    await InvokeMessageHandlersForStreamMessageAsync(stream, message);
-                    Log.Info(_log, "Processed event {0} from {1}", message.Id, stream);
+                    var handlers = GetEventHandlersFor(message.Summary);
+
+                    if (handlers.Any())
+                    {
+                        Log.Info(_log, "Processing event {0} from {1}", message.Id, stream);
+                        
+                        await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
+                        Log.Info(_log, "Processed event {0} from {1}", message.Id, stream);
+                    }
+
+                    Monitor.Enter(_synchroot);
+                    try
+                    {
+                        Log.Info(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
+                        await _streamPositionRepository.SetPositionForAsync(stream, message.SequenceNumber);
+                    }
+                    finally
+                    {
+                        Monitor.Exit(_synchroot);
+                    }
                 }
 
                 if (processingBatch.Entries.Any())
@@ -121,80 +138,78 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             Log.Info(_log, "Finished polling {0}", stream);
         }
 
-        public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, BasicEventInfo eventInfo)
+        public IEnumerable<object> GetEventHandlersFor(string eventTypeName)
         {
-            var @event = await _connection.ReadEventAsync(stream, eventInfo.SequenceNumber);
-
-            await InvokeMessageHandlersForEventMessageAsync(stream, @event);
-        }
-
-        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, EventReadResult eventReadResult)
-        {
-            var typeName = eventReadResult.EventInfo.Summary;
-            var eventType = _eventTypeResolver.Resolve(typeName);
-
+            var eventType = _eventTypeResolver.Resolve(eventTypeName);
             if (eventType == null)
             {
-                Log.Warning(_log, "No event handlers found for {0}", typeName);
+                Log.Warning(_log, "An unsupported event type was passed in No event type found for {0}", eventTypeName);
+                return Enumerable.Empty<object>();
+            }
+
+            var baseHandlerInterfaceType = typeof(IHandleEventsOf<>).MakeGenericType(eventType);
+            var handlers = _eventHandlerResolver.GetHandlersOf(baseHandlerInterfaceType).Cast<object>().ToList();
+
+            if (handlers.Any())
+            {
+                Log.Info(_log, "{0} handlers found for {1}", handlers.Count, eventType.FullName);
             }
             else
             {
-                var baseHandlerInterfaceType = typeof (IHandleEventsOf<>).MakeGenericType(eventType);
-                var handlers = _eventHandlerResolver.GetHandlersOf(baseHandlerInterfaceType);
+                Log.Warning(_log, "No handlers found for {0}", eventType.FullName);
+            }
+            return handlers;
+        }
+        
+        public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
+        {
+            var @event = await _connection.ReadEventAsync(stream, eventInfo.SequenceNumber);
 
-                foreach (var handler in handlers)
+            await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event);
+        }
+
+        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, EventReadResult eventReadResult)
+        {
+            foreach (var handler in handlers)
+            {
+                var handlerType = handler.GetType();
+
+                var handleMethod = GetMethodFromHandler(handlerType, eventType, "Handle");
+
+                if (handleMethod == null)
                 {
-                    var handlerType = handler.GetType();
+                    Log.Warning(_log, "Could not find the handle method for: {0}", handlerType.FullName);
+                    continue;
+                }
 
-                    var handleMethod = GetMethodFromHandler(handlerType, eventType, "Handle");
-
-                    if (handleMethod == null)
-                    {
-                        continue;
-                    }
+                try
+                {
+                    var eventJObject = eventReadResult.EventInfo.Content.Data;
+                    var @event = eventJObject == null ? null : @eventJObject.ToObject(eventType);
 
                     try
                     {
-                        var eventJObject = eventReadResult.EventInfo.Content.Data;
-                        var @event = eventJObject == null ? null : @eventJObject.ToObject(eventType);
-
-                        try
-                        {
-                            await (Task) handleMethod.Invoke(handler, new[] {@event});
-                        }
-                        catch (Exception invokeException)
-                        {
-                            var errorMessage = string.Format("{0} thrown processing event {1}",
-                                invokeException.GetType().FullName, @eventReadResult.EventInfo.Id);
-                            Log.Error(_log, errorMessage, invokeException);
-
-                            var errorMethod = GetMethodFromHandler(handlerType, eventType, "OnError");
-                            errorMethod.Invoke(handler, new[] {invokeException, @event});
-                        }
+                        await (Task) handleMethod.Invoke(handler, new[] {@event});
                     }
-                    catch (Exception deserialisationException)
+                    catch (Exception invokeException)
                     {
-                        var errorMessage = string.Format("{0} thrown rehydrating event {1}",
-                            deserialisationException.GetType().FullName, @eventReadResult.EventInfo.Id);
-                        Log.Error(_log, errorMessage, deserialisationException);
+                        var errorMessage = string.Format("{0} thrown processing event {1}",
+                            invokeException.GetType().FullName, @eventReadResult.EventInfo.Id);
+                        Log.Error(_log, errorMessage, invokeException);
+
+                        var errorMethod = GetMethodFromHandler(handlerType, eventType, "OnError");
+                        errorMethod.Invoke(handler, new[] {invokeException, @event});
                     }
                 }
+                catch (Exception deserialisationException)
+                {
+                    var errorMessage = string.Format("{0} thrown rehydrating event {1}",
+                        deserialisationException.GetType().FullName, @eventReadResult.EventInfo.Id);
+                    Log.Error(_log, errorMessage, deserialisationException);
+                }
             }
-
-            Monitor.Enter(_synchroot);
-            try
-            {
-                Log.Info(_log, "Storing last read event for {0} as {1}", stream, eventReadResult.SequenceNumber);
-                await _streamPositionRepository.SetPositionForAsync(stream, eventReadResult.SequenceNumber);
-            }
-            finally
-            {
-                Monitor.Exit(_synchroot);
-            }
-
         }
-
-
+        
         Dictionary<string, MethodInfo> methodCache = new Dictionary<string, MethodInfo>();
 
         public MethodInfo GetMethodFromHandler(Type concreteHandlerType, Type eventType, string methodName)

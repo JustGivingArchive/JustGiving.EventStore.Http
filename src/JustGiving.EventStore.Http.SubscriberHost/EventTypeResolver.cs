@@ -26,6 +26,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 }
             }
 
+            cache[fullName] = null;
             return null;
         }
     }

@@ -109,17 +109,19 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var count = 0;
             var streamSliceResult = new StreamEventsSlice
             {
-                Entries = new List<BasicEventInfo> { new BasicEventInfo {Title= "1@Stream"} }//Reflection ahoy
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream" } }//Reflection ahoy
             };
 
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => streamSliceResult).Callback(
-                () =>{
-                    if (count++ == 2)
-                    {
-                        streamSliceResult.Entries.Clear();
-                    }
-                });
-            _eventStoreHttpConnectionMock.Setup(x=>x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async()=> new EventReadResult(EventReadStatus.Success, StreamName, It.IsAny<int>(), new EventInfo {Summary=typeof(SomeEvent).FullName}));
+                () =>
+            {
+                if (count++ == 2)
+                {
+                    streamSliceResult.Entries.Clear();
+                }
+            });
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, StreamName, It.IsAny<int>(), new EventInfo { Summary = typeof(SomeEvent).FullName }));
             await _subscriber.PollAsync(StreamName);
 
             _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName), Times.Exactly(3));
@@ -140,23 +142,43 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public async void InvokeMessageHandlersForEventMessageAsync_ShouldStoreStreamPositionOnceHandlersInvoked()
+        public async void PollAsync_ShouldStoreStreamPositionAfterHandlersInvoked_EvenIfNoneWereFound()
         {
-            var result = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName });
+            var streamSliceResult = new StreamEventsSlice
+            {
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "123@Stream" } }
+            };
+            int count = 0;
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => await Task.FromResult(streamSliceResult)).Callback(
+                () =>{
+                if (count++ == 1)
+                {
+                    streamSliceResult.Entries.Clear();
+                }
+            });
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, result);
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));           
 
+            await _subscriber.PollAsync(StreamName);
+            
             _streamPositionRepositoryMock.Verify(x => x.SetPositionForAsync(StreamName, 123));
         }
 
         [Test]
-        public async void InvokeMessageHandlersForEventMessageAsync_ShouldRequestCorrectHandlers()
+        public void GetEventHandlersFor_ShouldRequestCorrectHandlers()
         {
-            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName });
-            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(SomeEvent));
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
+            _eventTypeResolverMock.Setup(x=>x.Resolve(typeof(SomeEvent).FullName)).Returns(typeof(SomeEvent));
+
+            _subscriber.GetEventHandlersFor(typeof(SomeEvent).FullName);
 
             _eventHandlerResolverMock.Verify(x => x.GetHandlersOf(typeof(IHandleEventsOf<SomeEvent>)));
+        }
+
+        [Test]
+        public void GetEventHandlersFor_ShouldReturnAnEumptyEnumerableIfANullEventTypeIsPassed()
+        {
+            var result = _subscriber.GetEventHandlersFor(null);
+            result.Should().NotBeNull();
         }
 
         [Test]
@@ -164,32 +186,33 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             var @implicit = new SomeImplicitHandler();
             var @explicit = new SomeExplicitHandler();
+
+            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName, Content = new RecordedEvent { Data = new JObject() } });
+
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(SomeEvent));
             
-            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName, Content = new RecordedEvent {Data = new JObject()} });
+            var handlers = new IHandleEventsOf<SomeEvent>[] {@implicit, @explicit};
 
-            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof (SomeEvent));
-            _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(typeof(IHandleEventsOf<SomeEvent>))).Returns(new IHandleEventsOf<SomeEvent>[] { @implicit , @explicit});
-
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, streamItem);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(SomeEvent), handlers, streamItem);
 
             @implicit.@event.Should().NotBeNull();
             @explicit.@event.Should().NotBeNull();
         }
 
-        public class SomeEvent{}
+        public class SomeEvent { }
 
         public class SomeImplicitHandler : IHandleEventsOf<SomeEvent>
         {
             public SomeEvent @event;
-            public Task Handle(SomeEvent @event) { return Task.Run(()=>this.@event = @event);}
-            public void OnError(Exception ex){}
+            public Task Handle(SomeEvent @event) { return Task.Run(() => this.@event = @event); }
+            public void OnError(Exception ex) { }
         }
 
         public class SomeExplicitHandler : IHandleEventsOf<SomeEvent>
         {
             public SomeEvent @event;
             Task IHandleEventsOf<SomeEvent>.Handle(SomeEvent @event) { return Task.Run(() => this.@event = @event); }
-            void IHandleEventsOf<SomeEvent>.OnError(Exception ex){}
+            void IHandleEventsOf<SomeEvent>.OnError(Exception ex) { }
         }
     }
 }
