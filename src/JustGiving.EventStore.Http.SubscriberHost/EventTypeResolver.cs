@@ -6,7 +6,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventTypeResolver : IEventTypeResolver
     {
-        Dictionary<string, Type> cache = new Dictionary<string,Type>();
+        private Dictionary<string, Type> cache = new Dictionary<string,Type>();
 
         public Type Resolve(string fullName)
         {
@@ -21,6 +21,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 var match = assembly.GetTypes().FirstOrDefault(x => x.FullName == fullName);
                 if (match != null)
                 {
+                    cache[fullName] = match;
                     return match;
                 }
             }
