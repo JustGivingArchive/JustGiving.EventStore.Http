@@ -29,7 +29,7 @@ FAQs
 **A**: <code>var connection = EventStoreHttpConnection.Create("http://localhost:9113");</code><br />
 If you please, you can create a new <code>ConnectionSettingsBuilder()</code> to build a custom ConnectionSettings object.
 
-**Q**: What exactly idoes the subscriber do?<br />
+**Q**: What exactly does the subscriber do?<br />
 **A**: At a high level, the subscriber will poll specified queues of an EventStore instance indefinitely, running event handlers the match the event type.  The 'Event Type' is a string, found in the event's Summary field ('MessageType' in the web client).  If you use the EventStore http or official client, this is taken care of automatically.
 <br />e.g. given an instance of the following event was stored
 
