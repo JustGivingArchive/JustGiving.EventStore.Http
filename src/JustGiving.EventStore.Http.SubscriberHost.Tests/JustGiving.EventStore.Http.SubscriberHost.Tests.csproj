@@ -62,6 +62,8 @@
     <Compile Include="EventStreamSubscriberTests.cs" />
     <Compile Include="MemoryBackedStreamPositionRepositoryForDebuggingTests.cs" />
     <Compile Include="EventStreamSubscriberSettingsBuilderTests.cs" />
+    <Compile Include="Monitoring\PerofmanceRecordTests.cs" />
+    <Compile Include="Monitoring\PerformanceStatsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
