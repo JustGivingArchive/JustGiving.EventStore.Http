@@ -220,7 +220,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 return result;
             }
             
-            var @interface = concreteHandlerType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IHandleEventsOf<>) && x.GetGenericArguments()[0] == eventType); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
+            var @interface = concreteHandlerType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && 
+                x.GetGenericTypeDefinition() == typeof(IHandleEventsOf<>) 
+                && x.GetGenericArguments()[0].IsAssignableFrom(eventType)); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
 
             if (@interface == null)
             {

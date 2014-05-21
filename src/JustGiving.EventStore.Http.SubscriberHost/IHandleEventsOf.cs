@@ -8,7 +8,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
     /// A handler for events coming from the <see cref="EventStoreHttpConnection"/>
     /// </summary>
     /// <typeparam name="T">The type of event this handler handles</typeparam>
-    public interface IHandleEventsOf<T>
+    public interface IHandleEventsOf<in T>
     {
         /// <summary>
         /// Runs the main event-processing logic for an event.  

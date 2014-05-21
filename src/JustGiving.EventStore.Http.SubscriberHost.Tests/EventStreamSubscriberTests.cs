@@ -75,6 +75,24 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             method.Name.Should().Be("Handle");
         }
 
+        [TestCase(typeof(SomeImplicitHandlerForParentType))]
+        [TestCase(typeof(SomeExplicitHandlerForParentType))]
+        public void GetMethodFromHandler_ShouldBeAbleToFindImplementedInterfaceMethodsWhenParentTypeHandled(Type handlerType)
+        {
+            var method = _subscriber.GetMethodFromHandler(handlerType, typeof(SomeEvent), "Handle");
+            Assert.NotNull(method);//fluent assertions does not support .NotBeNull() on MethodInfo objects
+            method.Name.Should().Be("Handle");
+        }
+
+        [TestCase(typeof(SomeImplicitHandlerForInterface))]
+        [TestCase(typeof(SomeExplicitHandlerForInterface))]
+        public void GetMethodFromHandler_ShouldBeAbleToFindImplementedInterfaceMethodsWhenInterfaceTypeHandled(Type handlerType)
+        {
+            var method = _subscriber.GetMethodFromHandler(handlerType, typeof(InterfaceBasedEvent), "Handle");
+            Assert.NotNull(method);//fluent assertions does not support .NotBeNull() on MethodInfo objects
+            method.Name.Should().Be("Handle");
+        }
+
         [Test]
         public async Task PollAsync_ShouldPauseTheEventTimerDuringPolling()//to prevent dual polling
         {
@@ -185,21 +203,45 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlers()
         {
             var @implicit = new SomeImplicitHandler();
+            var @implicitForParentType = new SomeImplicitHandlerForParentType();
             var @explicit = new SomeExplicitHandler();
+            var @explicitForParentType = new SomeExplicitHandlerForParentType();
 
             var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(SomeEvent).FullName, Content = new RecordedEvent { Data = new JObject() } });
 
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(SomeEvent));
             
-            var handlers = new IHandleEventsOf<SomeEvent>[] {@implicit, @explicit};
+            var handlers = new IHandleEventsOf<SomeEvent>[] {@implicit, @implicitForParentType, @explicit, @explicitForParentType};
 
             await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(SomeEvent), handlers, streamItem);
+
+            @implicit.@event.Should().NotBeNull();
+            @implicitForParentType.@event.Should().NotBeNull();
+            @explicit.@event.Should().NotBeNull();
+            @explicitForParentType.@event.Should().NotBeNull();
+        }
+
+        [Test]
+        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlersForInterfaceType()
+        {
+            var @implicit = new SomeImplicitHandlerForInterface();
+            var @explicit = new SomeExplicitHandlerForInterface();
+
+            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(InterfaceBasedEvent).FullName, Content = new RecordedEvent { Data = new JObject() } });
+
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(InterfaceBasedEvent));
+
+            var handlers = new IHandleEventsOf<IEvent>[] { @implicit, @explicit };
+
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(InterfaceBasedEvent), handlers, streamItem);
 
             @implicit.@event.Should().NotBeNull();
             @explicit.@event.Should().NotBeNull();
         }
 
         public class SomeEvent { }
+        public interface IEvent { }
+        public class InterfaceBasedEvent : IEvent {}
 
         public class SomeImplicitHandler : IHandleEventsOf<SomeEvent>
         {
@@ -208,11 +250,39 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             public void OnError(Exception ex) { }
         }
 
+        public class SomeImplicitHandlerForParentType : IHandleEventsOf<object>
+        {
+            public object @event;
+            public Task Handle(object @event) { return Task.Run(() => this.@event = @event); }
+            public void OnError(Exception ex) {}
+        }
+
+        public class SomeImplicitHandlerForInterface : IHandleEventsOf<IEvent>
+        {
+            public IEvent @event;
+            public Task Handle(IEvent @event) { return Task.Run(() => this.@event = @event); }
+            public void OnError(Exception ex) { }
+        }
+        
         public class SomeExplicitHandler : IHandleEventsOf<SomeEvent>
         {
             public SomeEvent @event;
             Task IHandleEventsOf<SomeEvent>.Handle(SomeEvent @event) { return Task.Run(() => this.@event = @event); }
             void IHandleEventsOf<SomeEvent>.OnError(Exception ex) { }
+        }
+
+        public class SomeExplicitHandlerForParentType : IHandleEventsOf<object>
+        {
+            public object @event;
+            Task IHandleEventsOf<object>.Handle(object @event) { return Task.Run(() => this.@event = @event); }
+            void IHandleEventsOf<object>.OnError(Exception ex) { }
+        }
+
+        public class SomeExplicitHandlerForInterface : IHandleEventsOf<IEvent>
+        {
+            public IEvent @event;
+            Task IHandleEventsOf<IEvent>.Handle(IEvent @event) { return Task.Run(() => this.@event = @event); }
+            void IHandleEventsOf<IEvent>.OnError(Exception ex) { }
         }
     }
 }
