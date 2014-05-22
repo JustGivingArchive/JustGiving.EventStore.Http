@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.Client.Common.Utils;
+using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 using log4net;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
@@ -22,6 +23,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly TimeSpan _defaultPollingInterval;
         private readonly int? _maxConcurrency;
         private readonly int _sliceSize;
+        
+        public PerformanceStats AllEventsStats { get; private set; }
+        public PerformanceStats ProcessedEventsStats { get; private set; }
 
         private readonly object _synchroot = new object();
         
@@ -56,6 +60,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _maxConcurrency = settings.MaxConcurrency;
             _sliceSize = settings.SliceSize;
             _log = settings.Log;
+
+            AllEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
+            ProcessedEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
+            
         }
 
 
@@ -101,12 +109,16 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 foreach (var message in processingBatch.Entries)
                 {
                     var handlers = GetEventHandlersFor(message.Summary);
+                    AllEventsStats.MessageProcessed(stream);
 
                     if (handlers.Any())
                     {
                         Log.Debug(_log, "Processing event {0} from {1}", message.Id, stream);
                         
                         await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
+                        
+                        ProcessedEventsStats.MessageProcessed(stream);
+                        
                         Log.Debug(_log, "Processed event {0} from {1}", message.Id, stream);
                     }
 

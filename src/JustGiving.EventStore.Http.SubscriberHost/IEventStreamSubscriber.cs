@@ -1,5 +1,6 @@
 using System;
 using JustGiving.EventStore.Http.Client;
+using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
 {
@@ -18,5 +19,15 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// </summary>
         /// <param name="stream">The name of the stream to be polled</param>
         void UnsubscribeFrom(string stream);
+
+        /// <summary>
+        /// Time-series statistics relating to the processing of every possible message from the event store
+        /// </summary>
+        PerformanceStats AllEventsStats { get; }
+
+        /// <summary>
+        /// Time-series statistics relating to the processing of every pprocessed message from the event store
+        /// </summary>
+        PerformanceStats ProcessedEventsStats { get; }
     }
 }

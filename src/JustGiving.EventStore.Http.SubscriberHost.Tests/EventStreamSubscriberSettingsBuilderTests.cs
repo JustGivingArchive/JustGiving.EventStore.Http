@@ -117,5 +117,35 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             ((EventStreamSubscriberSettings)_builder).SubscriptionTimerManager.Should().NotBeNull();
         }
+
+        [Test]
+        public void WithMessageProcessingStatsWindowPeriodOf_ShouldDefaultTo30Seconds()
+        {
+            var expected = TimeSpan.FromSeconds(1);
+            _builder.WithMessageProcessingStatsWindowPeriodOf(expected);
+
+            ((EventStreamSubscriberSettings)_builder).MessageProcessingStatsWindowPeriod.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenMessageProcessingStatsWindowPeriodNotSet_ShouldDefaultToTheStandardMessageProcessingStatsWindowPeriod()
+        {
+            ((EventStreamSubscriberSettings)_builder).MessageProcessingStatsWindowPeriod.Should().Be(TimeSpan.FromSeconds(30));
+        }
+
+        [Test]
+        public void WithMessageProcessingStatsWindowCountOf_ShouldDefaultTo30Seconds()
+        {
+            var expected = 123;
+            _builder.WithMessageProcessingStatsWindowCountOf(expected);
+
+            ((EventStreamSubscriberSettings)_builder).MessageProcessingStatsWindowCount.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenMessageProcessingStatsWindowCountNotSet_ShouldDefaultToTheStandardMessageProcessingStatsWindowPeriod()
+        {
+            ((EventStreamSubscriberSettings)_builder).MessageProcessingStatsWindowPeriod.Should().Be(TimeSpan.FromSeconds(30));
+        }
     }
 }

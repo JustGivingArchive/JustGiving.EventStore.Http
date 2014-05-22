@@ -6,7 +6,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriberSettings
     {
-        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int? maxConcurrency, int sliceSize, ILog log)
+        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int? maxConcurrency, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount)
         {
             Connection = connection;
             EventHandlerResolver = eventHandlerResolver;
@@ -17,6 +17,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             DefaultPollingInterval = pollingInterval;
             SliceSize = sliceSize;
             Log = log;
+            MessageProcessingStatsWindowPeriod = messageProcessingStatsWindowPeriod;
+            MessageProcessingStatsWindowCount = messageProcessingStatsWindowCount;
         }
 
         /// <summary>
@@ -34,6 +36,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public ISubscriptionTimerManager SubscriptionTimerManager { get; private set; }
         public IEventTypeResolver EventTypeResolver { get; private set; }
         public ILog Log { get; private set; }
+        public TimeSpan MessageProcessingStatsWindowPeriod { get; private set; }
+        public int MessageProcessingStatsWindowCount { get; private set; }
 
         public TimeSpan DefaultPollingInterval { get; private set; }
         public int? MaxConcurrency { get; private set; }

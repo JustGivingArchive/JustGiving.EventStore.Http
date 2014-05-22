@@ -12,6 +12,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private ISubscriptionTimerManager _subscriptionTimerManager;
         private IEventTypeResolver _eventTypeResolver = new EventTypeResolver();
         private ILog _log;
+        private TimeSpan _messageProcessingStatsWindowPeriod = TimeSpan.FromSeconds(30);
+        private int _messageProcessingStatsWindowCount = 120;
 
         private TimeSpan _defaultPollingInterval = TimeSpan.FromSeconds(30);
         private int? _maxConcurrency;
@@ -57,15 +59,25 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public EventStreamSubscriberSettingsBuilder WithCustomSubscriptionTimerManager(ISubscriptionTimerManager subscriptionTimerManager)
         {
-             _subscriptionTimerManager = subscriptionTimerManager;
+            _subscriptionTimerManager = subscriptionTimerManager;
             return this;
         }
 
+        public EventStreamSubscriberSettingsBuilder WithMessageProcessingStatsWindowPeriodOf(TimeSpan period)
+        {
+            _messageProcessingStatsWindowPeriod = period;
+            return this;
+        }
 
+        public EventStreamSubscriberSettingsBuilder WithMessageProcessingStatsWindowCountOf(int count)
+        {
+            _messageProcessingStatsWindowCount = count;
+            return this;
+        }
 
         public static implicit operator EventStreamSubscriberSettings(EventStreamSubscriberSettingsBuilder builder)
         {
-            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._maxConcurrency, builder._sliceSize, builder._log);
+            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._maxConcurrency, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount);
         }
     }
 }
