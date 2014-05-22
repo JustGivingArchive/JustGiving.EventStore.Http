@@ -214,28 +214,28 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public MethodInfo GetMethodFromHandler(Type concreteHandlerType, Type eventType, string methodName)
         {
+            var cacheKey = string.Format("{0}.{1}({2})", concreteHandlerType, methodName, eventType.FullName);
+
             MethodInfo result;
-            if (methodCache.TryGetValue(concreteHandlerType + methodName, out result))
+            if (methodCache.TryGetValue(cacheKey, out result))
             {
                 return result;
             }
-            
-            var @interface = concreteHandlerType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && 
-                x.GetGenericTypeDefinition() == typeof(IHandleEventsOf<>) 
-                && x.GetGenericArguments()[0].IsAssignableFrom(eventType)); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
 
+            var @interface = concreteHandlerType.GetInterfaces()
+                .Where(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof (IHandleEventsOf<>) && x.GetGenericArguments()[0].IsAssignableFrom(eventType))
+                .OrderBy(x => x.GetGenericArguments()[0], new TypeInheritanceComparer())
+                .FirstOrDefault(); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
+            
             if (@interface == null)
             {
                 Log.Warning(_log, "{0}, which handles {1} did not contain a suitable method named {2}", concreteHandlerType.FullName, eventType.FullName, methodName);
-                methodCache.Add(concreteHandlerType + methodName, result);
+                methodCache.Add(cacheKey, result);
                 return null;
             }
 
-
             result = @interface.GetMethod(methodName);
-
-            methodCache.Add(concreteHandlerType + methodName, result);
-
+            methodCache.Add(cacheKey, result);
             return result;
         }
     }

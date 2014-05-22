@@ -60,6 +60,7 @@
     <Compile Include="Monitoring\PerformanceStats.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SubscriptionTimerManager.cs" />
+    <Compile Include="TypeInheritanceComparer.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JustGiving.EventStore.Http.Client\JustGiving.EventStore.Http.Client.csproj">
