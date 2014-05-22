@@ -5,6 +5,16 @@ namespace JustGiving.EventStore.Http.Client.Common.Utils
 {
     public static class Log
     {
+        public static void Debug(ILog log, string format, params object[] @params)
+        {
+            if (log == null)
+            {
+                return;
+            }
+
+            log.DebugFormat(format, @params);
+        }
+
         public static void Info(ILog log, string format, params object[] @params)
         {
             if (log == null)

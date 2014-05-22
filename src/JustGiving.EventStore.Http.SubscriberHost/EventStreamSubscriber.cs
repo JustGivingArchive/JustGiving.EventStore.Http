@@ -89,31 +89,31 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
             var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream) ?? 0;
 
-            Log.Info(_log, "Last position for stream {0} was {1}", stream, lastPosition);
+            Log.Debug(_log, "Last position for stream {0} was {1}", stream, lastPosition);
 
-            Log.Info(_log, "Begin reading event metadata for {0}", stream);
+            Log.Debug(_log, "Begin reading event metadata for {0}", stream);
             var processingBatch = await _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize);
-            Log.Info(_log, "Finished reading event metadata for {0}: {1}", stream, processingBatch.Status);
+            Log.Debug(_log, "Finished reading event metadata for {0}: {1}", stream, processingBatch.Status);
 
             if (processingBatch.Status == StreamReadStatus.Success)
             {
-                Log.Info(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
+                Log.Debug(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
                 foreach (var message in processingBatch.Entries)
                 {
                     var handlers = GetEventHandlersFor(message.Summary);
 
                     if (handlers.Any())
                     {
-                        Log.Info(_log, "Processing event {0} from {1}", message.Id, stream);
+                        Log.Debug(_log, "Processing event {0} from {1}", message.Id, stream);
                         
                         await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
-                        Log.Info(_log, "Processed event {0} from {1}", message.Id, stream);
+                        Log.Debug(_log, "Processed event {0} from {1}", message.Id, stream);
                     }
 
                     Monitor.Enter(_synchroot);
                     try
                     {
-                        Log.Info(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
+                        Log.Debug(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
                         await _streamPositionRepository.SetPositionForAsync(stream, message.SequenceNumber);
                     }
                     finally
@@ -124,7 +124,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                 if (processingBatch.Entries.Any())
                 {
-                    Log.Info(_log, "New items in stream {0} were found; repolling", stream);
+                    Log.Debug(_log, "New items in stream {0} were found; repolling", stream);
                     await PollAsync(stream);
                     return;
                 }
@@ -152,7 +152,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             if (handlers.Any())
             {
-                Log.Info(_log, "{0} handlers found for {1}", handlers.Count, eventType.FullName);
+                Log.Debug(_log, "{0} handlers found for {1}", handlers.Count, eventType.FullName);
             }
             else
             {
