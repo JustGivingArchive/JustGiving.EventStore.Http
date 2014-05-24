@@ -87,11 +87,26 @@ Finally, subscribe to streams that you are interestesd in
 subscriber.SubscribeTo("InterestingStreamName");
 ```
 
+**Q:** Do you collect have any performance metrics?<br />
+**A:** By jingo, yes!  Each <code>IEventStreamSubscriber</code> has two properties - <code>AllEventsStats</code> & <code>ProcessedEventsStats</code>.  These collect counts of processed events and all events from your subscribed queues respectively.  Each one yields a <code>PerformanceStats</code> object, which is a time-series enumerable of stream/message-count pairs.<br />
+The number and duration of snapshots may be configured per-subscriber when building it:
+
+```csharp
+
+var builder = new EventStreamSubscriberSettingsBuilder(someConnection, someEventHanderResolver, someStreamPositionRepository);
+                .WithMessageProcessingStatsWindowPeriodOf(someTimespan)
+                .WithMessageProcessingStatsWindowCountOf(someInt);
+.
+```
+
+By default, a maximum of 120 windows will be kept, each representing 30 seconds of activity.
+
+
 **Q**: What is the DI/IoC story here?<br />
 **A**: Not ideal, as the interfaces were designed in homage to the GetEventStore TCP client. The builders are designed to be injectable directly, but the stream / subscribers will need a custom builder (hey, the stream endpoint is mandatory anyway...)<br />
 
 **Q**: Do you accept pull requests?<br />
-**A**: This library was created to fulfil a small set of internal needs, and we have no real policy on them.  Feel free to discuss at [@jghackers](http://www.twitter.com/jghackers)
+**A**: Maybe! This library was created to fulfil a small set of internal needs, and we have no real policy on them; it depends on the usefulness vs how breaky they are.  Feel free to discuss with [@jghackers](http://www.twitter.com/jghackers)
 
 **Q**: If you could drink any cola, what would it be?<br />
 **A**: Faygo
