@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -45,35 +46,73 @@ namespace JG.EventStore.Http.SubscriberHost.Tests.Monitoring
         [Test]
         public async Task MessageProcessed_ShouldGrowQueueIfNewEventIsLaterThanLatestTimePeriod()
         {
-            var sut = new PerformanceStats(TimeSpan.FromMilliseconds(1), 3);
-            await Task.Delay(5);
+            var sut = new PerformanceStats(TimeSpan.FromMilliseconds(50), 3);
+            await Task.Delay(60);
 
             sut.MessageProcessed("something arbitrary");
-            await Task.Delay(5);
+            await Task.Delay(60);
             sut.Records.Should().HaveCount(2);
 
             sut.MessageProcessed("something arbitrary");
-            await Task.Delay(5);
+            await Task.Delay(60);
             sut.Records.Should().HaveCount(3);
         }
 
         [Test]
         public async Task TidyRecords_WhenAddingRecords_ShouldGrowUpToMaximumSize()
         {
-            var sut = new PerformanceStats(TimeSpan.FromMilliseconds(1), 3);
-            await Task.Delay(5);
+            var sut = new PerformanceStats(TimeSpan.FromMilliseconds(50), 3);
+            await Task.Delay(60);
 
             sut.MessageProcessed("something arbitrary");
-            await Task.Delay(5);
+            await Task.Delay(60);
             sut.Records.Should().HaveCount(2);
 
             sut.MessageProcessed("something arbitrary");
-            await Task.Delay(5);
+            await Task.Delay(60);
             sut.Records.Should().HaveCount(3);
 
             sut.MessageProcessed("something arbitrary");
-            await Task.Delay(5);
+            await Task.Delay(60);
             sut.Records.Should().HaveCount(3);
+        }
+
+        [Test]
+        public async Task TidyRecords_WhenAddingRecords_ShouldNotOverflowMaxRecordCount()
+        {
+            var sut = new PerformanceStats(TimeSpan.FromMilliseconds(30), 3);
+
+            await Task.Delay(150);
+
+            var records = (Queue<PerformanceRecord>)sut.Records;
+
+            sut.TidyRecords();
+
+            records.Count.Should().Be(3);
+        }
+
+        [Test]
+        public async Task TidyRecords_WhenAddingRecords_ShouldFillInGapsInBuketsIfNecessary()
+        {
+            var sut = new PerformanceStats(TimeSpan.FromMilliseconds(30), 3);
+
+            await Task.Delay(150);
+
+            var records = (Queue<PerformanceRecord>)sut.Records;
+            
+            sut.TidyRecords();
+
+            var now = DateTime.Now;
+            
+            var last = records.Skip(2).First();
+            var middle = records.Skip(1).First();
+            var first = records.Skip(0).First();
+            last.EndTime.Should().BeWithin(TimeSpan.FromMilliseconds(50)).After(now);
+            last.EndTime.Should().BeWithin(TimeSpan.FromMilliseconds(50)).Before(now);
+
+            var oneMS = TimeSpan.FromMilliseconds(1);
+            last.StartTime.Should().BeWithin(oneMS).After(middle.EndTime);
+            middle.StartTime.Should().BeWithin(oneMS).After(first.EndTime);
         }
     }
 }

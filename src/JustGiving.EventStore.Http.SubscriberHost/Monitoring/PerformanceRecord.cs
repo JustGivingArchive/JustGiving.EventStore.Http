@@ -13,9 +13,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 
         public object syncRoot = new object();
 
-        public PerformanceRecord(TimeSpan recordPeriod)
+        public PerformanceRecord(TimeSpan recordPeriod, DateTime? startDate = null)
         {
-            StartTime = DateTime.Now;
+            StartTime = startDate ?? DateTime.Now;
             this.recordPeriod = recordPeriod;
         }
 

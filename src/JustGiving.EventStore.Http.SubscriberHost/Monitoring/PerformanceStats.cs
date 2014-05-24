@@ -3,12 +3,6 @@ using System.Collections.Generic;
 
 namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 {
-    public interface IPerformanceCounter
-    {
-        void MessageProcessed(string queueName);
-        IEnumerable<PerformanceRecord> Records { get; } 
-    }
-
     public class PerformanceStats
     {
         private readonly TimeSpan recordPeriod;
@@ -31,17 +25,19 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
             head.EventProcessed(queueName);//no need to await
         }
 
-        public void TidyRecords()//This should create a solid queue of events up until the present.  Currently it is sparse
+        public void TidyRecords()
         {
-            if (head.EndTime < DateTime.Now)
+            while (head.EndTime < DateTime.Now)
             {
-                head = new PerformanceRecord(recordPeriod);
+                head = new PerformanceRecord(recordPeriod, head.EndTime.AddTicks(1));
                 records.Enqueue(head);
+
+                if (records.Count > maxRecordCount)
+                {
+                    records.Dequeue();
+                }
             }
-            if (records.Count > maxRecordCount)
-            {
-                records.Dequeue();
-            }
+            
         }
 
         public IEnumerable<PerformanceRecord> Records

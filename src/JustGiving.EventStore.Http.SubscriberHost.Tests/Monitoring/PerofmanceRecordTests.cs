@@ -64,10 +64,18 @@ namespace JG.EventStore.Http.SubscriberHost.Tests.Monitoring
         }
 
         [Test]
-        public void StartTime_ShouldBeCalculatedAccordingToCurrentTime()
+        public void StartTime_ShouldBeCalculatedAccordingToCurrentTimeWhenNotSpecified()
         {
             var sut = new PerformanceRecord(It.IsAny<TimeSpan>());
             sut.StartTime.Should().BeWithin(TimeSpan.FromMilliseconds(50)).Before(DateTime.Now);
+        }
+
+        [Test]
+        public void StartTime_ShouldBeSetAccordinglyWhenSpecified()
+        {
+            var expected = new DateTime(1234, 5, 6);
+            var sut = new PerformanceRecord(It.IsAny<TimeSpan>(), expected);
+            sut.StartTime.Should().Be(expected);
         }
 
         [Test]

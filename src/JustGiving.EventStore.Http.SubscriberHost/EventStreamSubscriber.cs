@@ -63,7 +63,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             AllEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
             ProcessedEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
-            
         }
 
 
