@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 {
@@ -43,6 +44,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
         public IEnumerable<PerformanceRecord> Records
         {
             get { return records; }
+        }
+
+        public IEnumerable<PerformanceRecord> RecordsAfter(DateTime start)
+        {
+            return records.Where(x => x.StartTime > start);
         }
     }
 }

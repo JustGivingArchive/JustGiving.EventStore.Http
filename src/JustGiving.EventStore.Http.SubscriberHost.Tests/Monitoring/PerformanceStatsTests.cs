@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using FluentAssertions.Common;
 using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 using Moq;
 using NUnit.Framework;
@@ -99,11 +100,11 @@ namespace JG.EventStore.Http.SubscriberHost.Tests.Monitoring
             await Task.Delay(150);
 
             var records = (Queue<PerformanceRecord>)sut.Records;
-            
+
             sut.TidyRecords();
 
             var now = DateTime.Now;
-            
+
             var last = records.Skip(2).First();
             var middle = records.Skip(1).First();
             var first = records.Skip(0).First();
@@ -113,6 +114,26 @@ namespace JG.EventStore.Http.SubscriberHost.Tests.Monitoring
             var oneMS = TimeSpan.FromMilliseconds(1);
             last.StartTime.Should().BeWithin(oneMS).After(middle.EndTime);
             middle.StartTime.Should().BeWithin(oneMS).After(first.EndTime);
+        }
+
+        [Test]
+        public async Task RecordsAfter_ShouldReturnAllRecordsStartingAfterTheSuppliedDate()
+        {
+            var sut = new PerformanceStats(TimeSpan.FromMilliseconds(30), 3);
+
+            var records = (Queue<PerformanceRecord>)sut.Records;
+
+            records.Clear();
+
+            var first = new PerformanceRecord(It.IsAny<TimeSpan>(), new DateTime(1, 2, 3));
+            var second = new PerformanceRecord(It.IsAny<TimeSpan>(), first.StartTime.AddTicks(1));
+            
+            records.Enqueue(first);
+            records.Enqueue(second);
+
+            var foundRecords = sut.RecordsAfter(first.StartTime);
+
+            foundRecords.Should().BeEquivalentTo(new[] {second});
         }
     }
 }
