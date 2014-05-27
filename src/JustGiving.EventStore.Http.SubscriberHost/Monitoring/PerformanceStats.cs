@@ -43,12 +43,16 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 
         public IEnumerable<PerformanceRecord> Records
         {
-            get { return records; }
+            get
+            {
+                TidyRecords();
+                return records;
+            }
         }
 
         public IEnumerable<PerformanceRecord> RecordsAfter(DateTime start)
         {
-            return records.Where(x => x.StartTime > start);
+            return Records.Where(x => x.StartTime > start);
         }
     }
 }

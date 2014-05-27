@@ -48,14 +48,14 @@ namespace JG.EventStore.Http.SubscriberHost.Tests.Monitoring
         public async Task MessageProcessed_ShouldGrowQueueIfNewEventIsLaterThanLatestTimePeriod()
         {
             var sut = new PerformanceStats(TimeSpan.FromMilliseconds(50), 3);
-            await Task.Delay(60);
-
+            
             sut.MessageProcessed("something arbitrary");
+
             await Task.Delay(60);
             sut.Records.Should().HaveCount(2);
 
-            sut.MessageProcessed("something arbitrary");
             await Task.Delay(60);
+            sut.MessageProcessed("something arbitrary");
             sut.Records.Should().HaveCount(3);
         }
 
@@ -63,18 +63,18 @@ namespace JG.EventStore.Http.SubscriberHost.Tests.Monitoring
         public async Task TidyRecords_WhenAddingRecords_ShouldGrowUpToMaximumSize()
         {
             var sut = new PerformanceStats(TimeSpan.FromMilliseconds(50), 3);
+
             await Task.Delay(60);
 
             sut.MessageProcessed("something arbitrary");
-            await Task.Delay(60);
+
             sut.Records.Should().HaveCount(2);
-
-            sut.MessageProcessed("something arbitrary");
+            
             await Task.Delay(60);
+            sut.MessageProcessed("something arbitrary");
             sut.Records.Should().HaveCount(3);
 
             sut.MessageProcessed("something arbitrary");
-            await Task.Delay(60);
             sut.Records.Should().HaveCount(3);
         }
 
