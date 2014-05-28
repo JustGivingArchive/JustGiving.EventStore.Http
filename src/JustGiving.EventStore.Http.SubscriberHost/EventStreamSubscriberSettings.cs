@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using JustGiving.EventStore.Http.Client;
 using log4net;
 
@@ -6,7 +7,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriberSettings
     {
-        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount, TimeSpan? longPollingTimeout)
+        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount, TimeSpan? longPollingTimeout, IEnumerable<IEventStreamSubscriberPerformanceMonitor> performanceMonitors)
         {
             Connection = connection;
             EventHandlerResolver = eventHandlerResolver;
@@ -19,6 +20,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             MessageProcessingStatsWindowPeriod = messageProcessingStatsWindowPeriod;
             MessageProcessingStatsWindowCount = messageProcessingStatsWindowCount;
             LongPollingTimeout = longPollingTimeout;
+            PerformanceMonitors = performanceMonitors;
         }
 
         /// <summary>
@@ -38,6 +40,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public ILog Log { get; private set; }
         public TimeSpan MessageProcessingStatsWindowPeriod { get; private set; }
         public int MessageProcessingStatsWindowCount { get; private set; }
+        public IEnumerable<IEventStreamSubscriberPerformanceMonitor> PerformanceMonitors { get; private set; }
 
         public TimeSpan DefaultPollingInterval { get; private set; }
 

@@ -23,6 +23,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly TimeSpan _defaultPollingInterval;
         private readonly int _sliceSize;
         private readonly TimeSpan? _longPollingTimeout;
+        private readonly IEnumerable<IEventStreamSubscriberPerformanceMonitor> _performanceMonitors;
         
         public PerformanceStats AllEventsStats { get; private set; }
         public PerformanceStats ProcessedEventsStats { get; private set; }
@@ -59,6 +60,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _defaultPollingInterval = settings.DefaultPollingInterval;
             _sliceSize = settings.SliceSize;
             _longPollingTimeout = settings.LongPollingTimeout;
+            _performanceMonitors = settings.PerformanceMonitors;
             _log = settings.Log;
 
             AllEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
@@ -120,6 +122,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         
                         Log.Debug(_log, "Processed event {0} from {1}", message.Id, stream);
                     }
+                    else
+                    {
+                        _performanceMonitors.AsParallel().ForAll(x=>x.Accept(stream, message.Summary, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>()));
+                    }
 
                     Monitor.Enter(_synchroot);
                     try
@@ -172,6 +178,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             return handlers;
         }
         
+        //this needs to use the canonical link!!
         public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
         {
             var @event = await _connection.ReadEventAsync(stream, eventInfo.SequenceNumber);
@@ -181,8 +188,12 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, EventReadResult eventReadResult)
         {
+            var handlerCount = 0;
+
+            var errors = new Dictionary<Type, Exception>();
             foreach (var handler in handlers)
             {
+                handlerCount++;
                 var handlerType = handler.GetType();
 
                 var handleMethod = GetMethodFromHandler(handlerType, eventType, "Handle");
@@ -204,6 +215,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     }
                     catch (Exception invokeException)
                     {
+                        errors[handlerType] = invokeException;
+
                         var errorMessage = string.Format("{0} thrown processing event {1}",
                             invokeException.GetType().FullName, @eventReadResult.EventInfo.Id);
                         Log.Error(_log, errorMessage, invokeException);
@@ -219,6 +232,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     Log.Error(_log, errorMessage, deserialisationException);
                 }
             }
+
+            _performanceMonitors.AsParallel().ForAll(x=>x.Accept(stream, eventType.FullName, handlerCount, errors));
         }
         
         Dictionary<string, MethodInfo> methodCache = new Dictionary<string, MethodInfo>();

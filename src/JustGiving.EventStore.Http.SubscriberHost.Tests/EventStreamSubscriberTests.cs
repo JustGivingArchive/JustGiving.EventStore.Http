@@ -178,7 +178,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));           
 
             await _subscriber.PollAsync(StreamName);
-            
+
             _streamPositionRepositoryMock.Verify(x => x.SetPositionForAsync(StreamName, 123));
         }
 
@@ -237,6 +237,80 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             @implicit.@event.Should().NotBeNull();
             @explicit.@event.Should().NotBeNull();
+        }
+
+        [Test]
+        public async void PollAsync_WhenNoEventHandlersFound_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateInfo()
+        {
+            var performanceMonitor = new Mock<IEventStreamSubscriberPerformanceMonitor>();
+
+            var streamSliceResult = new StreamEventsSlice
+            {
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", Summary="SomeType" } }//Reflection ahoy
+            };
+
+            
+            var count = 0;
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
+                () =>
+                {
+                    if (count++ == 2)
+                    {
+                        streamSliceResult.Entries.Clear();
+                    }
+                });
+
+            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor.Object);
+            _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
+            
+            await _subscriber.PollAsync(StreamName);
+
+            performanceMonitor.Verify(x => x.Accept(StreamName, "SomeType", 0, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
+        }
+
+        [Test]
+        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateInfo()
+        {
+            var performanceMonitor1 = new Mock<IEventStreamSubscriberPerformanceMonitor>();
+            var performanceMonitor2 = new Mock<IEventStreamSubscriberPerformanceMonitor>();
+
+            var handlers = new[] { Mock.Of<IHandleEventsOf<object>>(), Mock.Of<IHandleEventsOf<object>>() };
+
+            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor1.Object, performanceMonitor2.Object);
+            _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
+
+            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = "Something", Content = new RecordedEvent { Data = new JObject() } });
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), handlers, streamItem);
+
+            performanceMonitor1.Verify(x => x.Accept(StreamName, typeof(object).FullName, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
+            performanceMonitor2.Verify(x => x.Accept(StreamName, typeof(object).FullName, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
+        }
+
+        [Test]
+        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateErrorInfoWhenAHandlerBlows()
+        {
+            var performanceMonitor = new Mock<IEventStreamSubscriberPerformanceMonitor>();
+
+            
+            var expectedException = new InvalidTimeZoneException("Summat");
+            var handler = new Mock<IHandleEventsOf<object>>();
+            handler.Setup(x=>x.Handle(It.IsAny<object>())).Throws(expectedException);
+
+            var called = false;
+            performanceMonitor.Setup(x => x.Accept(StreamName, typeof(object).FullName, 1, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>())).Callback<string, string, int, IEnumerable<KeyValuePair<Type, Exception>>>(
+                (stream, type, handlerCount, exceptions) =>
+                {
+                    called = true;
+                    exceptions.Should().BeEquivalentTo(new []{new KeyValuePair<Type, Exception>(handler.Object.GetType(), expectedException)});
+                });
+
+            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor.Object);
+            _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
+
+            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = "Something", Content = new RecordedEvent { Data = new JObject() } });
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), new[]{handler.Object}, streamItem);
+
+            called.Should().BeTrue();
         }
 
         [TestCase(typeof(EventANoBaseOrInterface), "EventNoBaseOrInterface")]

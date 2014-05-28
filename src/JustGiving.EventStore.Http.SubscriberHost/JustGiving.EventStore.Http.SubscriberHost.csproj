@@ -50,6 +50,7 @@
     <Compile Include="EventTypeResolver.cs" />
     <Compile Include="IEventHandlerResolver.cs" />
     <Compile Include="EventStreamSubscriber.cs" />
+    <Compile Include="IEventStreamSubscriberPerformanceMonitor.cs" />
     <Compile Include="IEventStreamSubscriber.cs" />
     <Compile Include="IEventTypeResolver.cs" />
     <Compile Include="IHandleEventsOf.cs" />

@@ -146,5 +146,31 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             ((EventStreamSubscriberSettings)_builder).LongPollingTimeout.Should().NotHaveValue();
         }
+        
+        [Test]
+        public void WhenNoPerformanceMonitorsAreAdded_PerformanceMonitorsShouldBeEmpty()
+        {
+            ((EventStreamSubscriberSettings)_builder).PerformanceMonitors.Should().BeEmpty();
+        }
+
+        [Test]
+        public void WhenANullPerformanceMonitorIsAdded_PerformanceMonitorsShouldBeEmpty()
+        {
+            _builder.AddPerformanceMonitor(null, null);
+            ((EventStreamSubscriberSettings)_builder).PerformanceMonitors.Should().BeEmpty();
+        }
+
+        [Test]
+        public void WhenANullPerformanceMonitorsAreAdded_PerformanceMonitorsShouldContainSaidPerformanceMonitors()
+        {
+            var firstExpected = Mock.Of<IEventStreamSubscriberPerformanceMonitor>();
+            var secondExpected = Mock.Of<IEventStreamSubscriberPerformanceMonitor>();
+            var thirdExpected = Mock.Of<IEventStreamSubscriberPerformanceMonitor>();
+
+            _builder.AddPerformanceMonitor(firstExpected, secondExpected);
+            _builder.AddPerformanceMonitor(thirdExpected);
+
+            ((EventStreamSubscriberSettings)_builder).PerformanceMonitors.Should().Contain(new[]{firstExpected, secondExpected, thirdExpected});
+        }
     }
 }

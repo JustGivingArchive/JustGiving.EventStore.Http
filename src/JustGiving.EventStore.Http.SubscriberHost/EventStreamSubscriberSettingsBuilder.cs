@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using JustGiving.EventStore.Http.Client;
 using log4net;
 
@@ -15,6 +17,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private TimeSpan _messageProcessingStatsWindowPeriod = TimeSpan.FromSeconds(30);
         private int _messageProcessingStatsWindowCount = 120;
         private TimeSpan? _longPollingTimeout;
+        private List<IEventStreamSubscriberPerformanceMonitor> _performanceMonitors = new List<IEventStreamSubscriberPerformanceMonitor>();
 
         private TimeSpan _defaultPollingInterval = TimeSpan.FromSeconds(30);
         private int _sliceSize = 100;
@@ -75,9 +78,15 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             return this;
         }
 
+        public EventStreamSubscriberSettingsBuilder AddPerformanceMonitor(params IEventStreamSubscriberPerformanceMonitor[] subscriberPerformanceMonitors)
+        {
+            _performanceMonitors.AddRange(subscriberPerformanceMonitors.Where(x=>x!=null));
+            return this;
+        }
+
         public static implicit operator EventStreamSubscriberSettings(EventStreamSubscriberSettingsBuilder builder)
         {
-            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount, builder._longPollingTimeout);
+            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount, builder._longPollingTimeout, builder._performanceMonitors);           
         }
     }
 }
