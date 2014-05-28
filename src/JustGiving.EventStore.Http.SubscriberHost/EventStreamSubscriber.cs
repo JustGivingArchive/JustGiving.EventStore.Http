@@ -21,7 +21,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly IEventTypeResolver _eventTypeResolver;
         private readonly ILog _log;
         private readonly TimeSpan _defaultPollingInterval;
-        private readonly int? _maxConcurrency;
         private readonly int _sliceSize;
         
         public PerformanceStats AllEventsStats { get; private set; }
@@ -57,7 +56,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _subscriptionTimerManager = settings.SubscriptionTimerManager;
             _eventTypeResolver = settings.EventTypeResolver;
             _defaultPollingInterval = settings.DefaultPollingInterval;
-            _maxConcurrency = settings.MaxConcurrency;
             _sliceSize = settings.SliceSize;
             _log = settings.Log;
 

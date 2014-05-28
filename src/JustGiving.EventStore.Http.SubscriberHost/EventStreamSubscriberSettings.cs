@@ -6,14 +6,13 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriberSettings
     {
-        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int? maxConcurrency, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount)
+        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount)
         {
             Connection = connection;
             EventHandlerResolver = eventHandlerResolver;
             StreamPositionRepository = streamPositionRepository;
             SubscriptionTimerManager = subscriptionTimerManager;
             EventTypeResolver = eventTypeResolver;
-            MaxConcurrency = maxConcurrency;
             DefaultPollingInterval = pollingInterval;
             SliceSize = sliceSize;
             Log = log;
@@ -40,7 +39,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public int MessageProcessingStatsWindowCount { get; private set; }
 
         public TimeSpan DefaultPollingInterval { get; private set; }
-        public int? MaxConcurrency { get; private set; }
+
         public int SliceSize { get; private set; }
     }
 }

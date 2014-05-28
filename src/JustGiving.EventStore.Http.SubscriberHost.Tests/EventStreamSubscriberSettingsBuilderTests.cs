@@ -44,21 +44,6 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public void WithMaximumEventHandlerConcurrencyPerSubscription_ShouldStoreRequiredConcurrencyLimit()
-        {
-            var expectedConcurrencyLimit = 123;
-            _builder.WithMaximumEventHandlerConcurrencyPerSubscription(expectedConcurrencyLimit);
-
-            ((EventStreamSubscriberSettings)_builder).MaxConcurrency.Should().Be(expectedConcurrencyLimit);
-        }
-
-        [Test]
-        public void WhenWithMaximumEventHandlerConcurrencyPerSubscriptionNotSet_ShouldDefaultToNull()
-        {
-            ((EventStreamSubscriberSettings)_builder).MaxConcurrency.Should().NotHaveValue();
-        }
-
-        [Test]
         public void WithSliceSizeOf_ShouldStoreRequiredSliceSize()
         {
             var expectedSliceSize = 123;

@@ -16,7 +16,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private int _messageProcessingStatsWindowCount = 120;
 
         private TimeSpan _defaultPollingInterval = TimeSpan.FromSeconds(30);
-        private int? _maxConcurrency;
         private int _sliceSize = 100;
 
         public EventStreamSubscriberSettingsBuilder(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository)
@@ -30,12 +29,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public EventStreamSubscriberSettingsBuilder WithDefaultPollingInterval(TimeSpan interval)
         {
             _defaultPollingInterval = interval;
-            return this;
-        }
-
-        public EventStreamSubscriberSettingsBuilder WithMaximumEventHandlerConcurrencyPerSubscription(int concurrentOperations)
-        {
-            _maxConcurrency = concurrentOperations;
             return this;
         }
 
@@ -77,7 +70,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public static implicit operator EventStreamSubscriberSettings(EventStreamSubscriberSettingsBuilder builder)
         {
-            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._maxConcurrency, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount);
+            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount);
         }
     }
 }
