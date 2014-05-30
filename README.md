@@ -18,7 +18,6 @@ FAQs
 **Q**: Do you advocate HTTP over raw TCP?<br />
 **A**: Each to their own; check out [the official line on it](https://github.com/eventstore/eventstore/wiki/Which-API).  We are using varnish which could be handy...
 
-
 **Q**: Do you have any nuget packages?<br />
 **A**: Yes:<br />
     [**JustGiving.EventStore.Http.Client**](http://www.nuget.org/packages/JustGiving.EventStore.Http.Client/) - The main client that actually talks to an EventStore instance<br />
@@ -101,6 +100,8 @@ var builder = new EventStreamSubscriberSettingsBuilder(someConnection, someEvent
 
 By default, a maximum of 120 windows will be kept, each representing 30 seconds of activity.
 
+**Q:** Any known bugs?
+**A:** Dues to a silly premature optimisation, the subscriber does not play well with projected streams, as it does not respect linked events yet.
 
 **Q**: What is the DI/IoC story here?<br />
 **A**: Not ideal, as the interfaces were designed in homage to the GetEventStore TCP client. The builders are designed to be injectable directly, but the stream / subscribers will need a custom builder (hey, the stream endpoint is mandatory anyway...)<br />
