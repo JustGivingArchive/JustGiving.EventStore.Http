@@ -153,13 +153,17 @@ namespace JustGiving.EventStore.Http.Client
             }
         }
 
-        public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count)
+        public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout)
         {
             using (var client = GetClient())
             {
                 var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count);
                 Log.Info(_log, "Reading forwards from {0}", url);
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
+                if (longPollingTimeout.HasValue && longPollingTimeout.Value.TotalSeconds>=1)
+                {
+                    request.Headers.Add("ES-LongPoll", longPollingTimeout.Value.TotalSeconds.ToString());
+                }
 
                 try
                 {

@@ -54,7 +54,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         public async void ListForwards()
         {
             await Insert(20);
-            var @event = await _connection.ReadStreamEventsForwardAsync(StreamName, 10, 5);
+            var @event = await _connection.ReadStreamEventsForwardAsync(StreamName, 10, 5, null);
         }
 
         //[Test]

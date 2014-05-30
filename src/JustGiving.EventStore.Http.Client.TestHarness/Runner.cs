@@ -89,7 +89,7 @@ namespace JustGiving.EventStore.Http.Client.TestHarness
 
         private async Task ReadSream()
         {
-            await connection.ReadStreamEventsForwardAsync(options.StreamName, StreamPosition.Start, 20);
+            await connection.ReadStreamEventsForwardAsync(options.StreamName, StreamPosition.Start, 20, null);
         }
 
         public class StubItem

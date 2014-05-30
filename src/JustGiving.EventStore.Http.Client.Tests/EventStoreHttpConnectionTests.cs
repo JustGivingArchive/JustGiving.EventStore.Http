@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -299,7 +300,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public async void ReadStreamEventsForwardAsync_KnownEventURIShouldBeCorrect()
         {
-            await ReadStreamEventsForwardTest(123, 15, (client, request) =>
+            await ReadStreamEventsForwardTest(123, 15, It.IsAny<TimeSpan?>(), (client, request) =>
             {
                 request.RequestUri.AbsoluteUri.Should().Be(string.Format("{0}/streams/{1}/123/forward/15", Endpoint, StreamName));
             });
@@ -309,7 +310,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public async void ReadStreamEventsForwardAsync_VerbShouldBeGet()
         {
-            await ReadStreamEventsForwardTest(It.IsAny<int>(), It.IsAny<int>(), (client, request) =>
+            await ReadStreamEventsForwardTest(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>(), (client, request) =>
             {
                 request.Method.Should().Be(HttpMethod.Get);
             });
@@ -318,9 +319,31 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public async void ReadStreamEventsForwardAsync_MediaTypeShouldNotBeUTF8JsonApplication()//Because it causes the result to be returned without metadata
         {
-            await ReadStreamEventsForwardTest(It.IsAny<int>(), It.IsAny<int>(), (client, request) =>
+            await ReadStreamEventsForwardTest(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>(), (client, request) =>
             {
                 request.Headers.Accept.Should().BeEmpty();
+            });
+        }
+
+        [Test]
+        public async void ReadStreamEventsForwardAsync_ESLongPollingShouldNotBeUsedByDefault()
+        {
+            await ReadStreamEventsForwardTest(It.IsAny<int>(), It.IsAny<int>(), null, (client, request) =>
+            {
+                request.Headers.Should().NotContain("ES-LongPoll");
+            });
+        }
+
+        [Test]
+        public async void ReadStreamEventsForwardAsync_ESLongPollingShouldBetSentInHeaderIfRequested()
+        {
+            await ReadStreamEventsForwardTest(It.IsAny<int>(), It.IsAny<int>(), TimeSpan.FromSeconds(30), (client, request) =>
+            {
+                IEnumerable<string> headers;
+                var found = request.Headers.TryGetValues("ES-LongPoll", out headers);
+                found.Should().BeTrue();
+                headers.Count().Should().Be(1);
+                headers.First().Should().Be("30");
             });
         }
 
@@ -330,7 +353,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
 
-            var result = await _connection.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>());
+            var result = await _connection.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>());
             result.Status.Should().Be(StreamReadStatus.StreamNotFound);
         }
 
@@ -340,7 +363,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Gone));
 
-            var result = await _connection.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>());
+            var result = await _connection.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>());
             result.Status.Should().Be(StreamReadStatus.StreamDeleted);
         }
 
@@ -352,7 +375,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
 
             Assert.Throws<EventStoreHttpException>(async () =>
             {
-                await _connection.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>());
+                await _connection.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>());
             });
         }
 
@@ -364,11 +387,11 @@ namespace JustGiving.EventStore.Http.Client.Tests
 
             Assert.Throws<EventStoreHttpException>(async () =>
             {
-                await _connection.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>());
+                await _connection.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>());
             });
         }
 
-        private async Task ReadStreamEventsForwardTest(int start, int count, Action<HttpClient, HttpRequestMessage> test)
+        private async Task ReadStreamEventsForwardTest(int start, int count, TimeSpan? longPollingTimeout, Action<HttpClient, HttpRequestMessage> test)
         {
             var called = false;
 
@@ -382,7 +405,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
                         called = true;
                     });
 
-            var result = await _connection.ReadStreamEventsForwardAsync(StreamName, start, count);
+            var result = await _connection.ReadStreamEventsForwardAsync(StreamName, start, count, longPollingTimeout);
             result.Entries[0].Id.Should().Be("1");
             result.Entries[1].Id.Should().Be("2");
 

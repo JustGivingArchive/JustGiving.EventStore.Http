@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 
 namespace JustGiving.EventStore.Http.Client
@@ -60,7 +61,8 @@ namespace JustGiving.EventStore.Http.Client
         /// <param name="stream">The stream to read from</param>
         /// <param name="start">The starting point to read from</param>
         /// <param name="count">The count of items to read</param>
+        /// <param name="longPollingTimeout">The amount of time to wait during a stream read if no events can be found.  If null, then do not wait</param>
         /// <returns>A <see cref="Task&lt;StreamEventsSlice&gt;"/> containing the results of the read operation</returns>
-        Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count);
+        Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout);
     }
 }

@@ -101,7 +101,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                 Entries = new List<BasicEventInfo>()
             };
 
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => result);
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => result);
             await _subscriber.PollAsync(StreamName);
 
             _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName));
@@ -115,7 +115,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                 Entries = new List<BasicEventInfo>()
             };
 
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => result);
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => result);
             await _subscriber.PollAsync(StreamName);
 
             _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName));
@@ -131,7 +131,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             };
 
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => streamSliceResult).Callback(
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
                 () =>
             {
                 if (count++ == 2)
@@ -155,7 +155,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                 Entries = null
             };
 
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => result);
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => result);
             await _subscriber.PollAsync(StreamName);
         }
 
@@ -167,7 +167,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                 Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "123@Stream" } }
             };
             int count = 0;
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>())).Returns(async () => await Task.FromResult(streamSliceResult)).Callback(
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => await Task.FromResult(streamSliceResult)).Callback(
                 () =>{
                 if (count++ == 1)
                 {

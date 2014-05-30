@@ -22,6 +22,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly ILog _log;
         private readonly TimeSpan _defaultPollingInterval;
         private readonly int _sliceSize;
+        private readonly TimeSpan? _longPollingTimeout;
         
         public PerformanceStats AllEventsStats { get; private set; }
         public PerformanceStats ProcessedEventsStats { get; private set; }
@@ -57,6 +58,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _eventTypeResolver = settings.EventTypeResolver;
             _defaultPollingInterval = settings.DefaultPollingInterval;
             _sliceSize = settings.SliceSize;
+            _longPollingTimeout = settings.LongPollingTimeout;
             _log = settings.Log;
 
             AllEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
@@ -97,7 +99,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             Log.Debug(_log, "Last position for stream {0} was {1}", stream, lastPosition);
 
             Log.Debug(_log, "Begin reading event metadata for {0}", stream);
-            var processingBatch = await _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize);
+            var processingBatch = await _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize, _longPollingTimeout);
             Log.Debug(_log, "Finished reading event metadata for {0}: {1}", stream, processingBatch.Status);
 
             if (processingBatch.Status == StreamReadStatus.Success)
