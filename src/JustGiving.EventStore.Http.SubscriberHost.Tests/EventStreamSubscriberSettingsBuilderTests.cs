@@ -104,7 +104,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public void WithMessageProcessingStatsWindowPeriodOf_ShouldDefaultTo30Seconds()
+        public void WithMessageProcessingStatsWindowPeriodOf_ShouldStoreRequiredStatsPeriod()
         {
             var expected = TimeSpan.FromSeconds(1);
             _builder.WithMessageProcessingStatsWindowPeriodOf(expected);
@@ -119,7 +119,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public void WithMessageProcessingStatsWindowCountOf_ShouldDefaultTo30Seconds()
+        public void WithMessageProcessingStatsWindowCountOf_ShouldStoreRequiredStatsWindowCount()
         {
             var expected = 123;
             _builder.WithMessageProcessingStatsWindowCountOf(expected);
@@ -131,6 +131,20 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public void WhenMessageProcessingStatsWindowCountNotSet_ShouldDefaultToTheStandardMessageProcessingStatsWindowPeriod()
         {
             ((EventStreamSubscriberSettings)_builder).MessageProcessingStatsWindowPeriod.Should().Be(TimeSpan.FromSeconds(30));
+        }
+
+        [Test]
+        public void WithLongPollingTimeoutOf_ShouldStoreRequiredLongPOllingTimeout()
+        {
+            var expected = TimeSpan.FromSeconds(123);
+            _builder.WithLongPollingTimeoutOf(expected);
+            ((EventStreamSubscriberSettings)_builder).LongPollingTimeout.Should().Be(expected);
+        }
+
+        [Test]
+        public void WhenLongPollingTimeoutNotSet_ShouldDefaultToNull()
+        {
+            ((EventStreamSubscriberSettings)_builder).LongPollingTimeout.Should().NotHaveValue();
         }
     }
 }
