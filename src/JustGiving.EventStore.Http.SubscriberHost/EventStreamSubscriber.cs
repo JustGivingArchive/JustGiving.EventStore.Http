@@ -215,7 +215,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     }
                     catch (Exception invokeException)
                     {
-                        errors[handlerType] = invokeException;
+                        errors[handlerType] = invokeException.InnerException;
 
                         var errorMessage = string.Format("{0} thrown processing event {1}",
                             invokeException.GetType().FullName, @eventReadResult.EventInfo.Id);

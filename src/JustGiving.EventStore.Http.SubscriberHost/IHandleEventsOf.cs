@@ -22,6 +22,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// </summary>
         /// <param name="ex">The <see cref="Exception"/> thrown by the Handle method</param>
         /// <remarks>This method should not throw an exception</remarks>
-        void OnError(Exception ex);
+        void OnError(Exception ex, T @event);
     }
 }

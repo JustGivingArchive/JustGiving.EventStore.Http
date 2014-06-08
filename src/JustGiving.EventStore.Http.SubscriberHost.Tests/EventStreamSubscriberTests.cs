@@ -371,42 +371,42 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             public EventANoBaseOrInterface EventA;
             public Task Handle(EventANoBaseOrInterface EventA) { return Task.Run(() => this.EventA = EventA); }
-            public void OnError(Exception ex) { }
+            public void OnError(Exception ex, EventANoBaseOrInterface @event) { }
         }
 
         public class SomeImplicitHandlerForParentType : IHandleEventsOf<object>
         {
             public object @event;
             public Task Handle(object EventA) { return Task.Run(() => this.@event = EventA); }
-            public void OnError(Exception ex) {}
+            public void OnError(Exception ex, object @event) {}
         }
 
         public class SomeImplicitHandlerForInterface : IHandleEventsOf<IEvent>
         {
             public IEvent @event;
             public Task Handle(IEvent EventA) { return Task.Run(() => this.@event = EventA); }
-            public void OnError(Exception ex) { }
+            public void OnError(Exception ex, IEvent @event) { }
         }
         
         public class SomeExplicitHandler : IHandleEventsOf<EventANoBaseOrInterface>
         {
             public EventANoBaseOrInterface EventA;
             Task IHandleEventsOf<EventANoBaseOrInterface>.Handle(EventANoBaseOrInterface EventA) { return Task.Run(() => this.EventA = EventA); }
-            void IHandleEventsOf<EventANoBaseOrInterface>.OnError(Exception ex) { }
+            void IHandleEventsOf<EventANoBaseOrInterface>.OnError(Exception ex, EventANoBaseOrInterface @event) { }
         }
 
         public class SomeExplicitHandlerForParentType : IHandleEventsOf<object>
         {
             public object @event;
             Task IHandleEventsOf<object>.Handle(object EventA) { return Task.Run(() => this.@event = EventA); }
-            void IHandleEventsOf<object>.OnError(Exception ex) { }
+            void IHandleEventsOf<object>.OnError(Exception ex, object @event) { }
         }
 
         public class SomeExplicitHandlerForInterface : IHandleEventsOf<IEvent>
         {
             public IEvent @event;
             Task IHandleEventsOf<IEvent>.Handle(IEvent EventA) { return Task.Run(() => this.@event = EventA); }
-            void IHandleEventsOf<IEvent>.OnError(Exception ex) { }
+            void IHandleEventsOf<IEvent>.OnError(Exception ex, IEvent @event) { }
         }
 
         public class MultiTypeImplicitHandler : 
@@ -461,9 +461,14 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                 return Task.Run(() => Method = "EventEWithBaseWhichHasInterface");
             }
 
-            public void OnError(Exception ex)
-            {
-            }
+            public void OnError(Exception ex, object @event) { }
+            public void OnError(Exception ex, EventANoBaseOrInterface @event){}
+            public void OnError(Exception ex, IEvent @event){}
+            public void OnError(Exception ex, EventAWithInterface @event){}
+            public void OnError(Exception ex, EventBase @event){}
+            public void OnError(Exception ex, EventAWithBase @event){}
+            public void OnError(Exception ex, EventAWithBaseAndInterface @event){}
+            public void OnError(Exception ex, EventEWithBaseWhichHasInterface @event){}
         }
 
         public class MultiTypeExplicitHandler :
@@ -518,9 +523,14 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                 return Task.Run(() => Method = "EventEWithBaseWhichHasInterface");
             }
 
-            public void OnError(Exception ex)
-            {
-            }
+            public void OnError(Exception ex, object @event) { }
+            public void OnError(Exception ex, EventANoBaseOrInterface @event) { }
+            public void OnError(Exception ex, IEvent @event) { }
+            public void OnError(Exception ex, EventAWithInterface @event) { }
+            public void OnError(Exception ex, EventBase @event) { }
+            public void OnError(Exception ex, EventAWithBase @event) { }
+            public void OnError(Exception ex, EventAWithBaseAndInterface @event) { }
+            public void OnError(Exception ex, EventEWithBaseWhichHasInterface @event) { }
         }
     }
 }
