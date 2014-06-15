@@ -1,4 +1,5 @@
-using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace JustGiving.EventStore.Http.Client
 {
@@ -6,7 +7,6 @@ namespace JustGiving.EventStore.Http.Client
     {
         public string Id { get; set; }
         public string Title { get; set; }
-        public DateTime? Updated { get; set; }
         public string Summary { get; set; }
 
         public int SequenceNumber
@@ -17,5 +17,18 @@ namespace JustGiving.EventStore.Http.Client
                 return int.Parse(idString);
             }
         }
+
+        public List<Link> Links { get; set; }
+
+        public string CanonicalEventLink
+        {
+            get { return Links.First(x => x.Relation == "edit").Uri; }
+        }
+    }
+
+    public class Link
+    {
+        public string Uri {get; set; }
+        public string Relation { get; set; }
     }
 }

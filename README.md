@@ -100,8 +100,8 @@ var builder = new EventStreamSubscriberSettingsBuilder(someConnection, someEvent
 
 By default, a maximum of 120 windows will be kept, each representing 30 seconds of activity.
 
-**Q:** Any known bugs?
-**A:** Dues to a silly premature optimisation, the subscriber does not play well with projected streams, as it does not respect linked events yet.
+**Q:** Any known bugs?<br />
+**A:** None at present (24/Jun/2014)
 
 **Q**: What is the DI/IoC story here?<br />
 **A**: Not ideal, as the interfaces were designed in homage to the GetEventStore TCP client. The builders are designed to be injectable directly, but the stream / subscribers will need a custom builder (hey, the stream endpoint is mandatory anyway...)<br />

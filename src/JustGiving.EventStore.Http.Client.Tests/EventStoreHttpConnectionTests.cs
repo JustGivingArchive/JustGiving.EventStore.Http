@@ -247,6 +247,117 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
+        public async void ReadEventBodyAsync_KnownEventURIShouldBeCorrect()
+        {
+            await ReadEventBodyTest(123, (client, request) =>
+            {
+                request.RequestUri.AbsoluteUri.Should().Be(string.Format("{0}/streams/{1}/123", Endpoint, StreamName));
+            });
+        }
+
+        [Test]
+        public async void ReadEventBodyAsync_HeadEventURIShouldBeCorrect()
+        {
+            await ReadEventBodyTest(StreamPosition.End, (client, request) =>
+            {
+                request.RequestUri.AbsoluteUri.Should().Be(string.Format("{0}/streams/{1}/head", Endpoint, StreamName));
+            });
+        }
+
+        [Test]
+        public async void ReadEventBodyAsync_VerbShouldBeGet()
+        {
+            await ReadEventBodyTest(It.IsAny<int>(), (client, request) =>
+            {
+                request.Method.Should().Be(HttpMethod.Get);
+            });
+        }
+
+        [Test]
+        public async void ReadEventBodyAsync_MediaTypeShould_BeJsonApplication()
+        {
+            await ReadEventBodyTest(It.IsAny<int>(), (client, request) =>
+            {
+                request.Headers.Accept.Should().NotBeEmpty();
+                request.Headers.Accept.First().MediaType.Should().Be("application/json");
+            });
+        }
+
+        [TestCase(HttpStatusCode.NotFound)]
+        [TestCase(HttpStatusCode.Gone)]
+        public async void ReadEventBodyAsync_SomeInvalidStatusCodesShouldReturnNull(HttpStatusCode statusCode)
+        {
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(statusCode) { Content = new StringContent("") });
+
+            var result = await _connection.ReadEventBodyAsync(It.IsAny<string>(), It.IsAny<int>());
+            result.Should().BeNull();
+        }
+
+        [TestCase(HttpStatusCode.InternalServerError)]
+        [TestCase(HttpStatusCode.Forbidden)]
+        public async void ReadEventBodyAsync_OtherInvalidStatusCodesShouldJustBlow(HttpStatusCode statusCode)
+        {
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(statusCode) { Content = new StringContent("") });
+
+            Assert.Throws<EventStoreHttpException>(async () =>
+            {
+                await _connection.ReadEventBodyAsync(It.IsAny<string>(), It.IsAny<int>());
+            });
+        }
+
+        [Test]
+        public async void ReadEventBodyAsync_AValidStatusCodeShouldReturnAJObject()
+        {
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{a:1}") });
+
+            var result = await _connection.ReadEventBodyAsync(It.IsAny<string>(), It.IsAny<int>());
+            result.Value<int>("a").Should().Be(1);
+        }
+
+        [Test]
+        public async void TypedReadEventBodyAsync_AValidStatusCodeShouldReturnATypedObject()
+        {
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{Id:123}") });
+
+            var result = await _connection.ReadEventBodyAsync<SomeClass>(It.IsAny<string>(), It.IsAny<int>());
+            result.Id.Should().Be(123);
+        }
+
+        [Test]
+        public async void TypedReadEventBodyAsync_ShouldReturnNullWhenAnInvalidStatusCodeIsReturned()
+        {
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{Id:123}") });
+
+            var result = await _connection.ReadEventBodyAsync<SomeClass>(It.IsAny<string>(), It.IsAny<int>());
+            result.Should().BeNull();
+        }
+
+        [Test]
+        public async void UntypedReadEventBodyAsync_AValidStatusCodeShouldReturnATypedObject()
+        {
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{Id:123}") });
+
+            var result = await _connection.ReadEventBodyAsync(typeof(SomeClass), It.IsAny<string>(), It.IsAny<int>());
+            ((SomeClass)result).Id.Should().Be(123);
+        }
+
+        [Test]
+        public async void UntypedReadEventBodyAsync_ShouldReturnNullWhenAnInvalidStatusCodeIsReturned()
+        {
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{Id:123}") });
+
+            var result = await _connection.ReadEventBodyAsync(typeof(SomeClass), It.IsAny<string>(), It.IsAny<int>());
+            result.Should().BeNull();
+        }
+
+        [Test]
         public async void ReadEventAsync_Http404ShouldYieldANotFoundResult()
         {
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
@@ -293,6 +404,25 @@ namespace JustGiving.EventStore.Http.Client.Tests
                     });
 
             await _connection.ReadEventAsync(StreamName, position);
+
+            called.Should().BeTrue();
+        }
+
+        private async Task ReadEventBodyTest(int position, Action<HttpClient, HttpRequestMessage> test)
+        {
+            var called = false;
+
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") })
+                .Callback<HttpClient, HttpRequestMessage>(
+                    (client, request) =>
+                    {
+                        test(client, request);
+
+                        called = true;
+                    });
+
+            await _connection.ReadEventBodyAsync(StreamName, position);
 
             called.Should().BeTrue();
         }
@@ -391,6 +521,12 @@ namespace JustGiving.EventStore.Http.Client.Tests
             });
         }
 
+        [Test]
+        public void GetCanonicalURIFor_ShouldCreate_Correct_URIs()
+        {
+            _connection.GetCanonicalURIFor("abc", 123).Should().Be("http://some-endpoint/streams/abc/123");
+        }
+
         private async Task ReadStreamEventsForwardTest(int start, int count, TimeSpan? longPollingTimeout, Action<HttpClient, HttpRequestMessage> test)
         {
             var called = false;
@@ -421,5 +557,10 @@ namespace JustGiving.EventStore.Http.Client.Tests
 
             return cs;
         }
+    }
+
+    internal class SomeClass
+    {
+        public int Id { get; set; }
     }
 }

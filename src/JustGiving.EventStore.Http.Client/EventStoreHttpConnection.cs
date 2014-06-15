@@ -7,6 +7,7 @@ using JustGiving.EventStore.Http.Client.Common.Utils;
 using JustGiving.EventStore.Http.Client.Exceptions;
 using log4net;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace JustGiving.EventStore.Http.Client
 {
@@ -112,28 +113,33 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task<EventReadResult> ReadEventAsync(string stream, int position)
         {
+            var url = GetCanonicalURIFor(stream, position);
+            return await ReadEventAsync(url);
+        }
+
+        public async Task<EventReadResult> ReadEventAsync(string url)
+        {
             using (var client = GetClient())
             {
-                var url = string.Concat(_endpoint, "/streams/", stream, "/", position == StreamPosition.End ? "head" : position.ToString());
                 Log.Info(_log, "Reading event from {0}", url);
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 var result = await _httpClientProxy.SendAsync(client, request);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
-                    Log.Warning(_log, "Read Event:Not Found: {0}/{1}", stream, position);
-                    return new EventReadResult(EventReadStatus.NotFound, stream, position, null);
+                    Log.Warning(_log, "Read Event:Not Found {0}", url);
+                    return new EventReadResult(EventReadStatus.NotFound, null);
                 }
 
                 if (result.StatusCode == HttpStatusCode.Gone)
                 {
-                    Log.Warning(_log, "Read Event: Gone: {0}/{1}", stream, position);
-                    return new EventReadResult(EventReadStatus.StreamDeleted, stream, position, null);
+                    Log.Warning(_log, "Read Event: Gone: {0}", url);
+                    return new EventReadResult(EventReadStatus.StreamDeleted, null);
                 }
 
                 if (!result.IsSuccessStatusCode)
                 {
-                    Log.Error(_log, "Read Event: Other Error ({0}): {1}/{2}", result.StatusCode.ToString(), stream, position);
+                    Log.Error(_log, "Read Event: Other Error ({0}): {1}", result.StatusCode.ToString(), url);
                     throw new EventStoreHttpException(result.Content.ToString(), result.ReasonPhrase, result.StatusCode);
                 }
 
@@ -142,15 +148,101 @@ namespace JustGiving.EventStore.Http.Client
                     var content = await result.Content.ReadAsStringAsync();
                     var eventInfo = JsonConvert.DeserializeObject<EventInfo>(content);
 
-                    return new EventReadResult(EventReadStatus.Success, stream, position, eventInfo);
+                    return new EventReadResult(EventReadStatus.Success, eventInfo);
                 }
                 catch (Exception ex)
                 {
                     HandleError(ex);
-                    Log.Error(_log, ex, "Error deserialising content from {0}/{1}", stream, position);
+                    Log.Error(_log, ex, "Error deserialising content from {0}", url);
                     throw;
                 }
             }
+        }
+
+        public async Task<JObject> ReadEventBodyAsync(string stream, int eventNumber)
+        {
+            var url = GetCanonicalURIFor(stream, eventNumber);
+            return await ReadEventBodyAsync(url);
+        }
+
+        public async Task<JObject> ReadEventBodyAsync(string url)
+        {
+            using (var client = GetClient())
+            {
+                Log.Info(_log, "Reading event body from {0}", url);
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add("accept", "application/json");
+                var result = await _httpClientProxy.SendAsync(client, request);
+
+                if (result.StatusCode == HttpStatusCode.NotFound)
+                {
+                    Log.Warning(_log, "Read Event:Not Found {0}", url);
+                    return null;
+                }
+
+                if (result.StatusCode == HttpStatusCode.Gone)
+                {
+                    Log.Warning(_log, "Read Event: Gone: {0}", url);
+                    return null;
+                }
+
+                if (!result.IsSuccessStatusCode)
+                {
+                    Log.Error(_log, "Read Event: Other Error ({0}): {1}", result.StatusCode.ToString(), url);
+                    throw new EventStoreHttpException(result.Content.ToString(), result.ReasonPhrase, result.StatusCode);
+                }
+
+                try
+                {
+                    var content = await result.Content.ReadAsStringAsync();
+                    if (string.IsNullOrEmpty(content))
+                    {
+                        return null;
+                    }
+                    return JObject.Parse(content);
+                }
+                catch (Exception ex)
+                {
+                    HandleError(ex);
+                    Log.Error(_log, ex, "Error deserialising content from {0}", url);
+                    throw;
+                }
+            }
+        }
+
+        public async Task<T> ReadEventBodyAsync<T>(string stream, int eventNumber) where T: class
+        {
+            var url = GetCanonicalURIFor(stream, eventNumber);
+            return await ReadEventBodyAsync<T>(url);
+        }
+
+        public async Task<object> ReadEventBodyAsync(Type eventType, string stream, int eventNumber)
+        {
+            var url = GetCanonicalURIFor(stream, eventNumber);
+            var intermediary = await ReadEventBodyAsync(url);
+
+            if (intermediary == null)
+            {
+                return null;
+            }
+
+            return intermediary.ToObject(eventType);
+        }
+
+        public async Task<T> ReadEventBodyAsync<T>(string url) where T: class
+        {
+            var intermediary = await ReadEventBodyAsync(url);
+            if (intermediary == null)
+            {
+                return null;
+            }
+            return intermediary.ToObject<T>();
+        }
+
+        public async Task<object> ReadEventBodyAsync(Type eventType, string url)
+        {
+            var intermediary = await ReadEventBodyAsync(url);
+            return intermediary.ToObject(eventType);
         }
 
         public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout)
@@ -200,8 +292,13 @@ namespace JustGiving.EventStore.Http.Client
                     HandleError(ex);
                     throw;
                 }
-
             }
+        }
+
+        public string GetCanonicalURIFor(string stream, int position)
+        {
+            var url = string.Concat(_endpoint, "/streams/", stream, "/", position == StreamPosition.End ? "head" : position.ToString());
+            return url;
         }
 
         public HttpClient GetClient()

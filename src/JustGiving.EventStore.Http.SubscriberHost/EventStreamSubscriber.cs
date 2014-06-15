@@ -178,15 +178,13 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             return handlers;
         }
         
-        //this needs to use the canonical link!!
         public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
         {
-            var @event = await _connection.ReadEventAsync(stream, eventInfo.SequenceNumber);
-
-            await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event);
+            var @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink);
+            await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo.Title);
         }
 
-        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, EventReadResult eventReadResult)
+        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, object @event, string eventTitle)
         {
             var handlerCount = 0;
 
@@ -206,9 +204,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                 try
                 {
-                    var eventJObject = eventReadResult.EventInfo.Content.Data;
-                    var @event = eventJObject == null ? null : @eventJObject.ToObject(eventType);
-
                     try
                     {
                         await (Task) handleMethod.Invoke(handler, new[] {@event});
@@ -218,7 +213,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         errors[handlerType] = invokeException.InnerException;
 
                         var errorMessage = string.Format("{0} thrown processing event {1}",
-                            invokeException.GetType().FullName, @eventReadResult.EventInfo.Id);
+                            invokeException.GetType().FullName, eventTitle);
                         Log.Error(_log, errorMessage, invokeException);
 
                         var errorMethod = GetMethodFromHandler(handlerType, eventType, "OnError");
@@ -228,7 +223,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 catch (Exception deserialisationException)
                 {
                     var errorMessage = string.Format("{0} thrown rehydrating event {1}",
-                        deserialisationException.GetType().FullName, @eventReadResult.EventInfo.Id);
+                        deserialisationException.GetType().FullName, eventTitle);
                     Log.Error(_log, errorMessage, deserialisationException);
                 }
             }

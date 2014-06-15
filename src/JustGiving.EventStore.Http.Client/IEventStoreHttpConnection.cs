@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace JustGiving.EventStore.Http.Client
 {
@@ -54,6 +55,58 @@ namespace JustGiving.EventStore.Http.Client
         /// <param name="eventNumber">The event number to read, <see cref="StreamPosition">StreamPosition.End</see> to read the last event in the stream</param>
         /// <returns>A <see cref="Task&lt;EventReadResult&gt;"/> containing the results of the read operation</returns>
         Task<EventReadResult> ReadEventAsync(string stream, int eventNumber);
+
+        /// <summary>
+        /// Asynchronously reads a single event from a stream.
+        /// </summary>
+        /// <param name="url">The canonical URI for of the event</param>
+        /// <returns>A <see cref="Task&lt;EventReadResult&gt;"/> containing the results of the read operation</returns>
+        Task<EventReadResult> ReadEventAsync(string url);
+
+        /// <summary>
+        /// Asynchronously reads a single event from a stream, as a castable object.
+        /// </summary>
+        /// <param name="stream">The stream to read from</param>
+        /// <param name="eventNumber">The event number to read, <see cref="StreamPosition">StreamPosition.End</see> to read the last event in the stream</param>
+        /// <returns>An object representing the results of the read operation</returns>
+        Task<JObject> ReadEventBodyAsync(string stream, int eventNumber);
+
+        /// <summary>
+        /// Asynchronously reads a single event from a stream, as a castable object.
+        /// </summary>
+        /// <param name="url">The canonical URI for of the event</param>
+        /// <returns>A <see cref="Task&lt;EventReadResult&gt;"/> containing the results of the read operation</returns>
+        Task<JObject> ReadEventBodyAsync(string url);
+
+        /// <summary>
+        /// Asynchronously reads a single event from a stream, casting directly to the target type where the type is known ahead of time.
+        /// </summary>
+        /// <param name="stream">The stream to read from</param>
+        /// <param name="eventNumber">The event number to read, <see cref="StreamPosition">StreamPosition.End</see> to read the last event in the stream</param>
+        /// <returns>An object representing the results of the read operation</returns>
+        Task<T> ReadEventBodyAsync<T>(string stream, int eventNumber) where T: class;
+
+        /// <summary>
+        /// Asynchronously reads a single event from a stream, casting directly to the target type where the type is known ahead of time.
+        /// </summary>
+        /// <param name="stream">The stream to read from</param>
+        /// <param name="eventNumber">The event number to read, <see cref="StreamPosition">StreamPosition.End</see> to read the last event in the stream</param>
+        /// <returns>An object representing the results of the read operation</returns>
+        Task<object> ReadEventBodyAsync(Type eventType, string stream, int eventNumber);
+
+        /// <summary>
+        /// Asynchronously reads a single event from a stream, casting directly to the target type where the type is known ahead of time.
+        /// </summary>
+        /// <param name="url">The canonical URI for of the event</param>
+        /// <returns>A <see cref="Task&lt;EventReadResult&gt;"/> containing the results of the read operation</returns>
+        Task<T> ReadEventBodyAsync<T>(string url) where T: class;
+
+        /// <summary>
+        /// Asynchronously reads a single event from a stream, casting directly to the target type where the type is known ahead of time.
+        /// </summary>
+        /// <param name="url">The canonical URI for of the event</param>
+        /// <returns>A <see cref="Task&lt;EventReadResult&gt;"/> containing the results of the read operation</returns>
+        Task<object> ReadEventBodyAsync(Type eventType, string url);
 
         /// <summary>
         /// Reads count Events from an Event Stream forwards (e.g. oldest to newest) starting from position start 

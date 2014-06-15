@@ -5,7 +5,6 @@ using FluentAssertions;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.SubscriberHost;
 using Moq;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace JG.EventStore.Http.SubscriberHost.Tests
@@ -139,7 +138,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                     streamSliceResult.Entries.Clear();
                 }
             });
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, StreamName, It.IsAny<int>(), new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
             await _subscriber.PollAsync(StreamName);
 
             _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName), Times.Exactly(3));
@@ -207,13 +206,11 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var @explicit = new SomeExplicitHandler();
             var @explicitForParentType = new SomeExplicitHandlerForParentType();
 
-            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName, Content = new RecordedEvent { Data = new JObject() } });
-
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
             
             var handlers = new IHandleEventsOf<EventANoBaseOrInterface>[] {@implicit, @implicitForParentType, @explicit, @explicitForParentType};
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventANoBaseOrInterface), handlers, streamItem);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventANoBaseOrInterface), handlers, new EventANoBaseOrInterface(), "1@2");
 
             @implicit.EventA.Should().NotBeNull();
             @implicitForParentType.@event.Should().NotBeNull();
@@ -227,13 +224,11 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var @implicit = new SomeImplicitHandlerForInterface();
             var @explicit = new SomeExplicitHandlerForInterface();
 
-            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = typeof(EventAWithInterface).FullName, Content = new RecordedEvent { Data = new JObject() } });
-
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventAWithInterface));
 
             var handlers = new IHandleEventsOf<IEvent>[] { @implicit, @explicit };
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventAWithInterface), handlers, streamItem);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventAWithInterface), handlers, new EventAWithInterface(), "1@2");
 
             @implicit.@event.Should().NotBeNull();
             @explicit.@event.Should().NotBeNull();
@@ -279,8 +274,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor1.Object, performanceMonitor2.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
 
-            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = "Something", Content = new RecordedEvent { Data = new JObject() } });
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), handlers, streamItem);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), handlers, new object(), "1@2");
 
             performanceMonitor1.Verify(x => x.Accept(StreamName, typeof(object).FullName, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
             performanceMonitor2.Verify(x => x.Accept(StreamName, typeof(object).FullName, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
@@ -307,8 +301,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
 
-            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = "Something", Content = new RecordedEvent { Data = new JObject() } });
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), new[]{handler.Object}, streamItem);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), new[] { handler.Object }, new object(), "1@2");
 
             called.Should().BeTrue();
         }
@@ -326,18 +319,16 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [TestCase(typeof(EventCWithBaseAndInterface), "object")]
         [TestCase(typeof(EventDWithBaseWhichHasInterface), "object")]
         [TestCase(typeof(EventEWithBaseWhichHasInterface), "EventEWithBaseWhichHasInterface")]
-        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeCorrectHandlerOverloadForType(Type evenType, string expectedMethod)
+        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeCorrectHandlerOverloadForType(Type eventType, string expectedMethod)
         {
             var @implicit = new MultiTypeImplicitHandler();
             var @explicit = new MultiTypeExplicitHandler();
 
-            var streamItem = new EventReadResult(EventReadStatus.Success, StreamName, 123, new EventInfo { Summary = evenType.FullName, Content = new RecordedEvent { Data = new JObject() } });
-
-            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(evenType);
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(eventType);
 
             var handlers = new IHandleEventsOf<object>[] { @implicit, @explicit };
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, evenType, handlers, streamItem);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, eventType, handlers, Activator.CreateInstance(eventType), "1@2");
 
             @implicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on implicit handler");
             @explicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on explicit handler");
