@@ -21,6 +21,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         private EventStreamSubscriber _subscriber;
 
         private const string StreamName = "abc";
+        private static DateTime EventDate = new DateTime(1,2,3);
 
         [SetUp]
         public void Setup()
@@ -210,7 +211,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             
             var handlers = new IHandleEventsOf<EventANoBaseOrInterface>[] {@implicit, @implicitForParentType, @explicit, @explicitForParentType};
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventANoBaseOrInterface), handlers, new EventANoBaseOrInterface(), "1@2");
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventANoBaseOrInterface), handlers, new EventANoBaseOrInterface(), "1@2", DateTime.Now);
 
             @implicit.EventA.Should().NotBeNull();
             @implicitForParentType.@event.Should().NotBeNull();
@@ -228,7 +229,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var handlers = new IHandleEventsOf<IEvent>[] { @implicit, @explicit };
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventAWithInterface), handlers, new EventAWithInterface(), "1@2");
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventAWithInterface), handlers, new EventAWithInterface(), "1@2", DateTime.Now);
 
             @implicit.@event.Should().NotBeNull();
             @explicit.@event.Should().NotBeNull();
@@ -241,10 +242,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var streamSliceResult = new StreamEventsSlice
             {
-                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", Summary="SomeType" } }//Reflection ahoy
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", Summary="SomeType", Updated = EventDate} }
             };
 
-            
             var count = 0;
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
                 () =>
@@ -260,7 +260,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             
             await _subscriber.PollAsync(StreamName);
 
-            performanceMonitor.Verify(x => x.Accept(StreamName, "SomeType", 0, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
+            performanceMonitor.Verify(x => x.Accept(StreamName, "SomeType", EventDate, 0, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
         }
 
         [Test]
@@ -274,10 +274,10 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor1.Object, performanceMonitor2.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), handlers, new object(), "1@2");
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), handlers, new object(), "1@2", EventDate);
 
-            performanceMonitor1.Verify(x => x.Accept(StreamName, typeof(object).FullName, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
-            performanceMonitor2.Verify(x => x.Accept(StreamName, typeof(object).FullName, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
+            performanceMonitor1.Verify(x => x.Accept(StreamName, typeof(object).FullName, EventDate, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
+            performanceMonitor2.Verify(x => x.Accept(StreamName, typeof(object).FullName, EventDate, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
         }
 
         [Test]
@@ -291,8 +291,8 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             handler.Setup(x=>x.Handle(It.IsAny<object>())).Throws(expectedException);
 
             var called = false;
-            performanceMonitor.Setup(x => x.Accept(StreamName, typeof(object).FullName, 1, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>())).Callback<string, string, int, IEnumerable<KeyValuePair<Type, Exception>>>(
-                (stream, type, handlerCount, exceptions) =>
+            performanceMonitor.Setup(x => x.Accept(StreamName, typeof(object).FullName, EventDate, 1, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>())).Callback<string, string, DateTime, int, IEnumerable<KeyValuePair<Type, Exception>>>(
+                (stream, type, createdDate, handlerCount, exceptions) =>
                 {
                     called = true;
                     exceptions.Should().BeEquivalentTo(new []{new KeyValuePair<Type, Exception>(handler.Object.GetType(), expectedException)});
@@ -301,7 +301,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), new[] { handler.Object }, new object(), "1@2");
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), new[] { handler.Object }, new object(), "1@2", EventDate);
 
             called.Should().BeTrue();
         }
@@ -328,7 +328,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var handlers = new IHandleEventsOf<object>[] { @implicit, @explicit };
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, eventType, handlers, Activator.CreateInstance(eventType), "1@2");
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, eventType, handlers, Activator.CreateInstance(eventType), "1@2", DateTime.Now);
 
             @implicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on implicit handler");
             @explicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on explicit handler");

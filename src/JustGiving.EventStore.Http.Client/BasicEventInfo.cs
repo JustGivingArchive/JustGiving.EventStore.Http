@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -8,6 +9,7 @@ namespace JustGiving.EventStore.Http.Client
         public string Id { get; set; }
         public string Title { get; set; }
         public string Summary { get; set; }
+        public DateTime Updated { get; set; }
 
         public int SequenceNumber
         {

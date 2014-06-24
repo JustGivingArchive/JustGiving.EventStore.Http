@@ -13,8 +13,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// </summary>
         /// <param name="stream">The name of the stream in which the event was found</param>
         /// <param name="messageType">The event's subject</param>
+        /// <param name="dateCreated">The date the event was appended to the stream</param>
         /// <param name="handlerCount">The number of event handlers registered which were able to process the message</param>
         /// <param name="processingExceptions">Exceptions raised by the invoked handlers</param>
-        void Accept(string stream, string messageType, int handlerCount, IEnumerable<KeyValuePair<Type, Exception>> processingExceptions);
+        void Accept(string stream, string messageType, DateTime dateCreated, int handlerCount, IEnumerable<KeyValuePair<Type, Exception>> processingExceptions);
     }
 }

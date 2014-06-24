@@ -124,7 +124,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     }
                     else
                     {
-                        _performanceMonitors.AsParallel().ForAll(x=>x.Accept(stream, message.Summary, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>()));
+                        _performanceMonitors.AsParallel().ForAll(x=>x.Accept(stream, message.Summary, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>()));
                     }
 
                     Monitor.Enter(_synchroot);
@@ -181,10 +181,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
         {
             var @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink);
-            await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo.Title);
+            await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo.Title, eventInfo.Updated);
         }
 
-        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, object @event, string eventTitle)
+        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, object @event, string eventTitle, DateTime updated)
         {
             var handlerCount = 0;
 
@@ -228,7 +228,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 }
             }
 
-            _performanceMonitors.AsParallel().ForAll(x=>x.Accept(stream, eventType.FullName, handlerCount, errors));
+            _performanceMonitors.AsParallel().ForAll(x => x.Accept(stream, eventType.FullName, updated, handlerCount, errors));
         }
         
         Dictionary<string, MethodInfo> methodCache = new Dictionary<string, MethodInfo>();
