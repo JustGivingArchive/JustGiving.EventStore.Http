@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -74,7 +75,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0} with an interval of {1}", stream, interval);
-                _subscriptionTimerManager.Add(stream, interval, () => PollAsync(stream));
+                _subscriptionTimerManager.Add(stream, interval, async () => await PollAsync(stream));
                 Log.Info(_log, "Subscribed to {0} with an interval of {1}", stream, interval);
             }
         }
@@ -89,7 +90,19 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
         }
 
+
         public async Task PollAsync(string stream)
+        {
+            try
+            {
+                await PollAsyncInternal(stream);
+            }
+            catch (Exception)
+            {
+                
+            }
+        }
+        public async Task PollAsyncInternal(string stream)
         {
             Log.Info(_log, "Begin polling {0}", stream);
             lock (_synchroot)

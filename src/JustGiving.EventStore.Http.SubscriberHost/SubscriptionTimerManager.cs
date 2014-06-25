@@ -23,8 +23,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 current = new Timer(actualPollInterval);
                 current.Start();
                 _subscriptions.Add(stream, current);
-                Task.Run(handler);
                 current.Elapsed += (s, e) => handler();
+                Task.Run(handler);
             }
         }
 
