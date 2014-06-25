@@ -244,7 +244,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _performanceMonitors.AsParallel().ForAll(x => x.Accept(stream, eventType.FullName, updated, handlerCount, errors));
         }
         
-        Dictionary<string, MethodInfo> methodCache = new Dictionary<string, MethodInfo>();
+        ConcurrentDictionary<string, MethodInfo> methodCache = new ConcurrentDictionary<string, MethodInfo>();
 
         public MethodInfo GetMethodFromHandler(Type concreteHandlerType, Type eventType, string methodName)
         {
@@ -264,12 +264,12 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             if (@interface == null)
             {
                 Log.Warning(_log, "{0}, which handles {1} did not contain a suitable method named {2}", concreteHandlerType.FullName, eventType.FullName, methodName);
-                methodCache.Add(cacheKey, result);
+                methodCache.TryAdd(cacheKey, result);
                 return null;
             }
 
             result = @interface.GetMethod(methodName);
-            methodCache.Add(cacheKey, result);
+            methodCache.TryAdd(cacheKey, result);
             return result;
         }
     }
