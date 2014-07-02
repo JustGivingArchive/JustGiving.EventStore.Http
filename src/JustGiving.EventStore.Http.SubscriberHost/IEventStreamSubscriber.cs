@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 
@@ -29,5 +30,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// Time-series statistics relating to the processing of every pprocessed message from the event store
         /// </summary>
         PerformanceStats ProcessedEventsStats { get; }
+
+        /// <summary>
+        /// Stores the latest ticks and their intervals for all streams
+        /// </summary>
+        StreamTickMonitor StreamTicks { get; }
     }
 }

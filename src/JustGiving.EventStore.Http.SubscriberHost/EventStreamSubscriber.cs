@@ -25,12 +25,13 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly int _sliceSize;
         private readonly TimeSpan? _longPollingTimeout;
         private readonly IEnumerable<IEventStreamSubscriberPerformanceMonitor> _performanceMonitors;
-        
+
         public PerformanceStats AllEventsStats { get; private set; }
         public PerformanceStats ProcessedEventsStats { get; private set; }
+        public StreamTickMonitor StreamTicks { get; private set; }
 
         private readonly object _synchroot = new object();
-        
+
 
         /// <summary>
         /// Creates a new <see cref="IEventStreamSubscriber"/> to single node using default <see cref="ConnectionSettings"/>
@@ -66,6 +67,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             AllEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
             ProcessedEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
+            StreamTicks = new StreamTickMonitor();
         }
 
 
@@ -75,7 +77,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0} with an interval of {1}", stream, interval);
-                _subscriptionTimerManager.Add(stream, interval, async () => await PollAsync(stream));
+                _subscriptionTimerManager.Add(stream, interval, async () => await PollAsync(stream), () => MonitorTicks(stream, interval));
                 Log.Info(_log, "Subscribed to {0} with an interval of {1}", stream, interval);
             }
         }
@@ -99,7 +101,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
             catch (Exception)
             {
-                
+
             }
         }
         public async Task PollAsyncInternal(string stream)
@@ -128,16 +130,16 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     if (handlers.Any())
                     {
                         Log.Debug(_log, "Processing event {0} from {1}", message.Id, stream);
-                        
+
                         await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
-                        
+
                         ProcessedEventsStats.MessageProcessed(stream);
-                        
+
                         Log.Debug(_log, "Processed event {0} from {1}", message.Id, stream);
                     }
                     else
                     {
-                        _performanceMonitors.AsParallel().ForAll(x=>x.Accept(stream, message.Summary, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>()));
+                        _performanceMonitors.AsParallel().ForAll(x => x.Accept(stream, message.Summary, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>()));
                     }
 
                     Monitor.Enter(_synchroot);
@@ -164,7 +166,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 _subscriptionTimerManager.Resume(stream);
             }
-            
+
             Log.Info(_log, "Finished polling {0}", stream);
         }
 
@@ -190,7 +192,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
             return handlers;
         }
-        
+
         public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
         {
             var @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink);
@@ -219,7 +221,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 {
                     try
                     {
-                        await (Task) handleMethod.Invoke(handler, new[] {@event});
+                        await (Task)handleMethod.Invoke(handler, new[] { @event });
                     }
                     catch (Exception invokeException)
                     {
@@ -230,7 +232,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         Log.Error(_log, errorMessage, invokeException);
 
                         var errorMethod = GetMethodFromHandler(handlerType, eventType, "OnError");
-                        errorMethod.Invoke(handler, new[] {invokeException, @event});
+                        errorMethod.Invoke(handler, new[] { invokeException, @event });
                     }
                 }
                 catch (Exception deserialisationException)
@@ -243,7 +245,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             _performanceMonitors.AsParallel().ForAll(x => x.Accept(stream, eventType.FullName, updated, handlerCount, errors));
         }
-        
+
         ConcurrentDictionary<string, MethodInfo> methodCache = new ConcurrentDictionary<string, MethodInfo>();
 
         public MethodInfo GetMethodFromHandler(Type concreteHandlerType, Type eventType, string methodName)
@@ -257,10 +259,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
 
             var @interface = concreteHandlerType.GetInterfaces()
-                .Where(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof (IHandleEventsOf<>) && x.GetGenericArguments()[0].IsAssignableFrom(eventType))
+                .Where(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IHandleEventsOf<>) && x.GetGenericArguments()[0].IsAssignableFrom(eventType))
                 .OrderBy(x => x.GetGenericArguments()[0], new TypeInheritanceComparer())
                 .FirstOrDefault(); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
-            
+
             if (@interface == null)
             {
                 Log.Warning(_log, "{0}, which handles {1} did not contain a suitable method named {2}", concreteHandlerType.FullName, eventType.FullName, methodName);
@@ -271,6 +273,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             result = @interface.GetMethod(methodName);
             methodCache.TryAdd(cacheKey, result);
             return result;
+        }
+        
+        public async Task MonitorTicks(string stream, TimeSpan interval)
+        {
+            StreamTicks[stream] = Tuple.Create(interval, DateTime.Now);
         }
     }
 }
