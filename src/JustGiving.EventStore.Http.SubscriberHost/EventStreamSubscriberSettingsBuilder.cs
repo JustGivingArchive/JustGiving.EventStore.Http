@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using JustGiving.EventStore.Http.Client;
+using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 using log4net;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
@@ -18,6 +19,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private int _messageProcessingStatsWindowCount = 120;
         private TimeSpan? _longPollingTimeout;
         private List<IEventStreamSubscriberPerformanceMonitor> _performanceMonitors = new List<IEventStreamSubscriberPerformanceMonitor>();
+        private IStreamSubscriberIntervalMonitor _subscriberIntervalMonitor;
 
         private TimeSpan _defaultPollingInterval = TimeSpan.FromSeconds(30);
         private int _sliceSize = 100;
@@ -28,6 +30,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _eventHandlerResolver = eventHandlerResolver;
             _streamPositionRepository = streamPositionRepository;
             _subscriptionTimerManager = new SubscriptionTimerManager();
+            _subscriberIntervalMonitor = new StreamSubscriberIntervalMonitor();
         }
 
         public EventStreamSubscriberSettingsBuilder WithDefaultPollingInterval(TimeSpan interval)
@@ -80,13 +83,19 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public EventStreamSubscriberSettingsBuilder AddPerformanceMonitor(params IEventStreamSubscriberPerformanceMonitor[] subscriberPerformanceMonitors)
         {
-            _performanceMonitors.AddRange(subscriberPerformanceMonitors.Where(x=>x!=null));
+            _performanceMonitors.AddRange(subscriberPerformanceMonitors.Where(x => x != null));
+            return this;
+        }
+
+        public EventStreamSubscriberSettingsBuilder WithCustomEventStreamSubscriberIntervalMonitor(IStreamSubscriberIntervalMonitor monitor)
+        {
+            _subscriberIntervalMonitor = monitor;
             return this;
         }
 
         public static implicit operator EventStreamSubscriberSettings(EventStreamSubscriberSettingsBuilder builder)
         {
-            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount, builder._longPollingTimeout, builder._performanceMonitors);           
+            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount, builder._longPollingTimeout, builder._performanceMonitors, builder._subscriberIntervalMonitor);
         }
     }
 }

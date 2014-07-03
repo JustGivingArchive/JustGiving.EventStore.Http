@@ -25,14 +25,13 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly int _sliceSize;
         private readonly TimeSpan? _longPollingTimeout;
         private readonly IEnumerable<IEventStreamSubscriberPerformanceMonitor> _performanceMonitors;
-
+       
+        public IStreamSubscriberIntervalMonitor StreamSubscriberMonitor { get; private set; }
         public PerformanceStats AllEventsStats { get; private set; }
         public PerformanceStats ProcessedEventsStats { get; private set; }
-        public StreamTickMonitor StreamTicks { get; private set; }
-
+      
         private readonly object _synchroot = new object();
-
-
+        
         /// <summary>
         /// Creates a new <see cref="IEventStreamSubscriber"/> to single node using default <see cref="ConnectionSettings"/>
         /// </summary>
@@ -64,12 +63,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _longPollingTimeout = settings.LongPollingTimeout;
             _performanceMonitors = settings.PerformanceMonitors;
             _log = settings.Log;
-
+            
+            StreamSubscriberMonitor = settings.SubscriberIntervalMonitor;
             AllEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
             ProcessedEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
-            StreamTicks = new StreamTickMonitor();
         }
-
 
         public void SubscribeTo(string stream, TimeSpan? pollInterval = null)
         {
@@ -77,7 +75,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0} with an interval of {1}", stream, interval);
-                _subscriptionTimerManager.Add(stream, interval, async () => await PollAsync(stream), () => MonitorTicks(stream, interval));
+                _subscriptionTimerManager.Add(stream, interval, async () => await PollAsync(stream), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval));
                 Log.Info(_log, "Subscribed to {0} with an interval of {1}", stream, interval);
             }
         }
@@ -89,9 +87,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 Log.Info(_log, "Unsubscribing from {0}", stream);
                 _subscriptionTimerManager.Remove(stream);
                 Log.Info(_log, "Unsubscribed from {0}", stream);
+
+                StreamSubscriberMonitor.RemoveEventStreamMonitor(stream);
+                Log.Info(_log, "Stream ticks monitor removed from {0}", stream);
             }
         }
-
 
         public async Task PollAsync(string stream)
         {
@@ -117,6 +117,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             Log.Info(_log, "Finished polling {0}", stream);
         }
+
         public async Task PollAsyncInternal(string stream)
         {
             var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream) ?? 0;
@@ -266,11 +267,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             result = @interface.GetMethod(methodName);
             methodCache.TryAdd(cacheKey, result);
             return result;
-        }
-        
-        public async Task MonitorTicks(string stream, TimeSpan interval)
-        {
-            StreamTicks[stream] = Tuple.Create(interval, DateTime.Now);
         }
     }
 }

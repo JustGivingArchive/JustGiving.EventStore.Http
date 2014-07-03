@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using JustGiving.EventStore.Http.Client;
+using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 using log4net;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriberSettings
     {
-        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount, TimeSpan? longPollingTimeout, IEnumerable<IEventStreamSubscriberPerformanceMonitor> performanceMonitors)
+        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount, TimeSpan? longPollingTimeout, IEnumerable<IEventStreamSubscriberPerformanceMonitor> performanceMonitors, IStreamSubscriberIntervalMonitor streamSubscriberIntervalMonitor)
         {
             Connection = connection;
             EventHandlerResolver = eventHandlerResolver;
@@ -21,6 +22,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             MessageProcessingStatsWindowCount = messageProcessingStatsWindowCount;
             LongPollingTimeout = longPollingTimeout;
             PerformanceMonitors = performanceMonitors;
+            SubscriberIntervalMonitor = streamSubscriberIntervalMonitor;
         }
 
         /// <summary>
@@ -41,7 +43,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public TimeSpan MessageProcessingStatsWindowPeriod { get; private set; }
         public int MessageProcessingStatsWindowCount { get; private set; }
         public IEnumerable<IEventStreamSubscriberPerformanceMonitor> PerformanceMonitors { get; private set; }
-
+        public IStreamSubscriberIntervalMonitor SubscriberIntervalMonitor { get; private set; }
+    
         public TimeSpan DefaultPollingInterval { get; private set; }
 
         public int SliceSize { get; private set; }

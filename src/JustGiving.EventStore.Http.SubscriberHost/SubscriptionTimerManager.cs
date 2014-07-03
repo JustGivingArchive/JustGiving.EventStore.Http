@@ -9,7 +9,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
     {
         private readonly Dictionary<string, Timer> _subscriptions = new Dictionary<string, Timer>(StringComparer.InvariantCultureIgnoreCase);
 
-        public void Add(string stream, TimeSpan pollInterval, Func<Task> handler, Action tickMonitor)
+        public void Add(string stream, TimeSpan pollInterval, Func<Task> handler, Action streamIntervalMonitor)
         {
             var actualPollInterval = pollInterval.TotalMilliseconds;
 
@@ -26,7 +26,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 current.Elapsed += (s, e) =>
                 {
                     handler();
-                    tickMonitor();
+                    streamIntervalMonitor();
                 };
 
                 Task.Run(handler);

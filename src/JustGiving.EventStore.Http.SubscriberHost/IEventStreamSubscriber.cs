@@ -34,6 +34,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// <summary>
         /// Stores the latest ticks and their intervals for all streams
         /// </summary>
-        StreamTickMonitor StreamTicks { get; }
+        IStreamSubscriberIntervalMonitor StreamSubscriberMonitor { get; }
+        
     }
 }

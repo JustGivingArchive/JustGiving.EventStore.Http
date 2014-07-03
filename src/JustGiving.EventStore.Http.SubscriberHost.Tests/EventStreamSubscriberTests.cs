@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.SubscriberHost;
+using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 using Moq;
 using NUnit.Framework;
 
@@ -17,6 +18,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         Mock<IStreamPositionRepository> _streamPositionRepositoryMock;
         Mock<ISubscriptionTimerManager> _subscriptionTimerManagerMock;
         Mock<IEventTypeResolver> _eventTypeResolverMock;
+        Mock<IStreamSubscriberIntervalMonitor> _streamSubscriberIntervalMonitorMock;
 
         private EventStreamSubscriber _subscriber;
 
@@ -31,8 +33,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _streamPositionRepositoryMock = new Mock<IStreamPositionRepository>();
             _subscriptionTimerManagerMock = new Mock<ISubscriptionTimerManager>();
             _eventTypeResolverMock = new Mock<IEventTypeResolver>();
+            _streamSubscriberIntervalMonitorMock = new Mock<IStreamSubscriberIntervalMonitor>();
 
-            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).WithCustomSubscriptionTimerManager(_subscriptionTimerManagerMock.Object);
+            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).WithCustomSubscriptionTimerManager(_subscriptionTimerManagerMock.Object).WithCustomEventStreamSubscriberIntervalMonitor(_streamSubscriberIntervalMonitorMock.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
         }
 
@@ -65,6 +68,14 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _subscriber.UnsubscribeFrom(StreamName);
             _subscriptionTimerManagerMock.Verify(x => x.Remove(StreamName));
         }
+
+        [Test]
+        public void UnsubscribeFrom_ShouldRemoveStreamSubscriberIntervalMonitor()
+        {
+            _subscriber.UnsubscribeFrom(StreamName);
+            _streamSubscriberIntervalMonitorMock.Verify(x => x.RemoveEventStreamMonitor(StreamName));
+        }
+
 
         [TestCase(typeof(SomeImplicitHandler))]
         [TestCase(typeof(SomeExplicitHandler))]
