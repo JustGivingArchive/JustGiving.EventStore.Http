@@ -95,22 +95,30 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public async Task PollAsync(string stream)
         {
-            try
-            {
-                await PollAsyncInternal(stream);
-            }
-            catch (Exception)
-            {
-
-            }
-        }
-        public async Task PollAsyncInternal(string stream)
-        {
             Log.Info(_log, "Begin polling {0}", stream);
             lock (_synchroot)
             {
                 _subscriptionTimerManager.Pause(stream);//we want to be able to cane a stream if we are not up to date, without reading it twice
             }
+
+            try
+            {
+                await PollAsyncInternal(stream);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(_log, ex, "Generic last-cahnce catch");
+            }
+
+            lock (_synchroot)
+            {
+                _subscriptionTimerManager.Resume(stream);
+            }
+
+            Log.Info(_log, "Finished polling {0}", stream);
+        }
+        public async Task PollAsyncInternal(string stream)
+        {
             var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream) ?? 0;
 
             Log.Debug(_log, "Last position for stream {0} was {1}", stream, lastPosition);
@@ -157,17 +165,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 if (processingBatch.Entries.Any())
                 {
                     Log.Debug(_log, "New items in stream {0} were found; repolling", stream);
-                    await PollAsync(stream);
+                    await PollAsyncInternal(stream);
                     return;
                 }
             }
-
-            lock (_synchroot)
-            {
-                _subscriptionTimerManager.Resume(stream);
-            }
-
-            Log.Info(_log, "Finished polling {0}", stream);
         }
 
         public IEnumerable<object> GetEventHandlersFor(string eventTypeName)

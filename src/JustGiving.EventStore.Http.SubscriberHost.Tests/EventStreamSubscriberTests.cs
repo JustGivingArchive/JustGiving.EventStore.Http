@@ -142,7 +142,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
             await _subscriber.PollAsync(StreamName);
 
-            _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName), Times.Exactly(3));
+            _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName), Times.Once);
             _subscriptionTimerManagerMock.Verify(x => x.Resume(StreamName), Times.Once);
         }
 
