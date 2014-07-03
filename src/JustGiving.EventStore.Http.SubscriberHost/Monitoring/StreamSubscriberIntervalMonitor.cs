@@ -1,51 +1,79 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using JustGiving.EventStore.Http.Client.Common.Utils;
-using log4net;
 
 namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 {
-    public class StreamSubscriberIntervalMonitor : ConcurrentDictionary<string, Tuple<TimeSpan, DateTime>>, IStreamSubscriberIntervalMonitor
+    public class StreamSubscriberIntervalMonitor : ConcurrentDictionary<string, StreamIntervalTick>, IStreamSubscriberIntervalMonitor
     {
-        public StreamSubscriberIntervalMonitor()
-        {
-            
-        }
-
-        public bool AnyStreamBehind()
+        public bool IsAnyStreamBehind()
         {
             var now = DateTime.Now;
-            return Values.All(value => !IsStreamSubscriberBehind(now, value));
-        }
-
-        private static bool IsStreamSubscriberBehind(DateTime now, Tuple<TimeSpan, DateTime> value)
-        {
-            return now.AddSeconds(-value.Item1.TotalSeconds * 2) > value.Item2;
-        }
-
-        public string GetStreamsIntervalReport()
-        {
-            var builder = new StringBuilder();
-            var now = DateTime.Now;
-            builder.AppendLine("Event Stream Subscriber Interval stats:");
-            foreach (var item in this)
+            if (Values.Any(value => IsStreamSubscriberBehind(now, value)))
             {
-                builder.AppendLine(string.Format("Stream: {0}, IsBehind: {3}, Interval: {1}, LastTick: {2}, Now: {4}", item.Key, item.Value.Item1, item.Value.Item2, IsStreamSubscriberBehind(now, item.Value), now));
+                return true;
             }
-            return builder.ToString();
+            return false;
+        }
+
+        private static bool IsStreamSubscriberBehind(DateTime now, StreamIntervalTick tick)
+        {
+            return now.AddSeconds(-tick.Interval.TotalSeconds * 2) > tick.LastTick;
+        }
+
+        public IEnumerable<StreamSubscriberIntervalStats> GetStreamsIntervalStats()
+        {
+            return this.Select(item => new StreamSubscriberIntervalStats(item.Value)
+            {
+                StreamName = item.Key,
+                IsStreamBehind = IsStreamSubscriberBehind(DateTime.Now, item.Value)
+            }).ToList();
         }
 
         public void UpdateEventStreamSubscriberIntervalMonitor(string stream, TimeSpan interval)
         {
-            this[stream] = Tuple.Create(interval, DateTime.Now);
+            this[stream] = new StreamIntervalTick()
+            {
+                Interval = interval,
+                LastTick = DateTime.Now
+            };
         }
 
         public void RemoveEventStreamMonitor(string stream)
         {
-            Tuple<TimeSpan, DateTime> removed;
+            StreamIntervalTick removed;
             this.TryRemove(stream, out removed);
+        }
+
+        public StreamSubscriberIntervalStats GetStreamIntervalStats(string stream)
+        {
+            try
+            {
+                var streamTick = this[stream];
+                return new StreamSubscriberIntervalStats(streamTick)
+                {
+                    StreamName = stream,
+                    IsStreamBehind = IsStreamSubscriberBehind(DateTime.Now, streamTick)
+                };
+            }
+            catch (KeyNotFoundException)
+            {
+                return null;
+            }
+        }
+
+        public bool? IsStreamBehind(string stream)
+        {
+            try
+            {
+                var streamTick = this[stream];
+                return IsStreamSubscriberBehind(DateTime.Now, streamTick);
+            }
+            catch (KeyNotFoundException)
+            {
+                return null;
+            }
         }
     }
 }

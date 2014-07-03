@@ -23,7 +23,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         private EventStreamSubscriber _subscriber;
 
         private const string StreamName = "abc";
-        private static DateTime EventDate = new DateTime(1,2,3);
+        private static DateTime EventDate = new DateTime(1, 2, 3);
 
         [SetUp]
         public void Setup()
@@ -72,10 +72,11 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [Test]
         public void UnsubscribeFrom_ShouldRemoveStreamSubscriberIntervalMonitor()
         {
+
             _subscriber.UnsubscribeFrom(StreamName);
+
             _streamSubscriberIntervalMonitorMock.Verify(x => x.RemoveEventStreamMonitor(StreamName));
         }
-
 
         [TestCase(typeof(SomeImplicitHandler))]
         [TestCase(typeof(SomeExplicitHandler))]
@@ -144,12 +145,12 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
                 () =>
-            {
-                if (count++ == 2)
                 {
-                    streamSliceResult.Entries.Clear();
-                }
-            });
+                    if (count++ == 2)
+                    {
+                        streamSliceResult.Entries.Clear();
+                    }
+                });
             _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
             await _subscriber.PollAsync(StreamName);
 
@@ -179,14 +180,15 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             };
             int count = 0;
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => await Task.FromResult(streamSliceResult)).Callback(
-                () =>{
-                if (count++ == 1)
+                () =>
                 {
-                    streamSliceResult.Entries.Clear();
-                }
-            });
+                    if (count++ == 1)
+                    {
+                        streamSliceResult.Entries.Clear();
+                    }
+                });
 
-            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));           
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
 
             await _subscriber.PollAsync(StreamName);
 
@@ -196,7 +198,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [Test]
         public void GetEventHandlersFor_ShouldRequestCorrectHandlers()
         {
-            _eventTypeResolverMock.Setup(x=>x.Resolve(typeof(EventANoBaseOrInterface).FullName)).Returns(typeof(EventANoBaseOrInterface));
+            _eventTypeResolverMock.Setup(x => x.Resolve(typeof(EventANoBaseOrInterface).FullName)).Returns(typeof(EventANoBaseOrInterface));
 
             _subscriber.GetEventHandlersFor(typeof(EventANoBaseOrInterface).FullName);
 
@@ -219,8 +221,8 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var @explicitForParentType = new SomeExplicitHandlerForParentType();
 
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
-            
-            var handlers = new IHandleEventsOf<EventANoBaseOrInterface>[] {@implicit, @implicitForParentType, @explicit, @explicitForParentType};
+
+            var handlers = new IHandleEventsOf<EventANoBaseOrInterface>[] { @implicit, @implicitForParentType, @explicit, @explicitForParentType };
 
             await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventANoBaseOrInterface), handlers, new EventANoBaseOrInterface(), "1@2", DateTime.Now);
 
@@ -253,7 +255,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var streamSliceResult = new StreamEventsSlice
             {
-                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", Summary="SomeType", Updated = EventDate} }
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", Summary = "SomeType", Updated = EventDate } }
             };
 
             var count = 0;
@@ -268,7 +270,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
-            
+
             await _subscriber.PollAsync(StreamName);
 
             performanceMonitor.Verify(x => x.Accept(StreamName, "SomeType", EventDate, 0, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
@@ -296,17 +298,17 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             var performanceMonitor = new Mock<IEventStreamSubscriberPerformanceMonitor>();
 
-            
+
             var expectedException = new InvalidTimeZoneException("Summat");
             var handler = new Mock<IHandleEventsOf<object>>();
-            handler.Setup(x=>x.Handle(It.IsAny<object>())).Throws(expectedException);
+            handler.Setup(x => x.Handle(It.IsAny<object>())).Throws(expectedException);
 
             var called = false;
             performanceMonitor.Setup(x => x.Accept(StreamName, typeof(object).FullName, EventDate, 1, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>())).Callback<string, string, DateTime, int, IEnumerable<KeyValuePair<Type, Exception>>>(
                 (stream, type, createdDate, handlerCount, exceptions) =>
                 {
                     called = true;
-                    exceptions.Should().BeEquivalentTo(new []{new KeyValuePair<Type, Exception>(handler.Object.GetType(), expectedException)});
+                    exceptions.Should().BeEquivalentTo(new[] { new KeyValuePair<Type, Exception>(handler.Object.GetType(), expectedException) });
                 });
 
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor.Object);
@@ -344,7 +346,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             @implicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on implicit handler");
             @explicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on explicit handler");
         }
-        
+
         public interface IEvent { }
         public abstract class EventBase { }
 
@@ -360,8 +362,8 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
         public interface IEvent2 { }
         public abstract class EventBase2 { }
-        public class EventCWithInterface : IEvent2  { }
-        public class EventCWithBase : EventBase2  { }
+        public class EventCWithInterface : IEvent2 { }
+        public class EventCWithBase : EventBase2 { }
         public class EventCWithBaseAndInterface : EventBase2, IEvent2 { }
 
         public interface IEvent3 { }
@@ -380,7 +382,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             public object @event;
             public Task Handle(object EventA) { return Task.Run(() => this.@event = EventA); }
-            public void OnError(Exception ex, object @event) {}
+            public void OnError(Exception ex, object @event) { }
         }
 
         public class SomeImplicitHandlerForInterface : IHandleEventsOf<IEvent>
@@ -389,7 +391,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             public Task Handle(IEvent EventA) { return Task.Run(() => this.@event = EventA); }
             public void OnError(Exception ex, IEvent @event) { }
         }
-        
+
         public class SomeExplicitHandler : IHandleEventsOf<EventANoBaseOrInterface>
         {
             public EventANoBaseOrInterface EventA;
@@ -411,8 +413,8 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             void IHandleEventsOf<IEvent>.OnError(Exception ex, IEvent @event) { }
         }
 
-        public class MultiTypeImplicitHandler : 
-            IHandleEventsOf<object>, 
+        public class MultiTypeImplicitHandler :
+            IHandleEventsOf<object>,
             IHandleEventsOf<EventANoBaseOrInterface>,
             IHandleEventsOf<IEvent>,
             IHandleEventsOf<EventAWithInterface>,
@@ -464,13 +466,13 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             }
 
             public void OnError(Exception ex, object @event) { }
-            public void OnError(Exception ex, EventANoBaseOrInterface @event){}
-            public void OnError(Exception ex, IEvent @event){}
-            public void OnError(Exception ex, EventAWithInterface @event){}
-            public void OnError(Exception ex, EventBase @event){}
-            public void OnError(Exception ex, EventAWithBase @event){}
-            public void OnError(Exception ex, EventAWithBaseAndInterface @event){}
-            public void OnError(Exception ex, EventEWithBaseWhichHasInterface @event){}
+            public void OnError(Exception ex, EventANoBaseOrInterface @event) { }
+            public void OnError(Exception ex, IEvent @event) { }
+            public void OnError(Exception ex, EventAWithInterface @event) { }
+            public void OnError(Exception ex, EventBase @event) { }
+            public void OnError(Exception ex, EventAWithBase @event) { }
+            public void OnError(Exception ex, EventAWithBaseAndInterface @event) { }
+            public void OnError(Exception ex, EventEWithBaseWhichHasInterface @event) { }
         }
 
         public class MultiTypeExplicitHandler :
@@ -481,7 +483,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             IHandleEventsOf<EventBase>,
             IHandleEventsOf<EventAWithBase>,
             IHandleEventsOf<EventAWithBaseAndInterface>,
-            IHandleEventsOf<EventEWithBaseWhichHasInterface> 
+            IHandleEventsOf<EventEWithBaseWhichHasInterface>
         {
             public string Method { get; set; }
 
