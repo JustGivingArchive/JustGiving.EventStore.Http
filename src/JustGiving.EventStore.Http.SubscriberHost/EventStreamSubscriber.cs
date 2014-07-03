@@ -150,16 +150,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         _performanceMonitors.AsParallel().ForAll(x => x.Accept(stream, message.Summary, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>()));
                     }
 
-                    Monitor.Enter(_synchroot);
-                    try
-                    {
-                        Log.Debug(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
-                        await _streamPositionRepository.SetPositionForAsync(stream, message.SequenceNumber);
-                    }
-                    finally
-                    {
-                        Monitor.Exit(_synchroot);
-                    }
+                    Log.Debug(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
+                    await _streamPositionRepository.SetPositionForAsync(stream, message.SequenceNumber);
                 }
 
                 if (processingBatch.Entries.Any())
