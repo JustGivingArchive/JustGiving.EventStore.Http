@@ -91,6 +91,11 @@ namespace JustGiving.EventStore.Http.Client
             }
         }
 
+        public async Task AppendToStreamAsync(string stream, params NewEventData[] events)
+        {
+            await AppendToStreamAsync(stream, ExpectedVersion.Any, events);
+        }
+
         public async Task AppendToStreamAsync(string stream, int expectedVersion, params NewEventData[] events)
         {
             var url = _endpoint + "/streams/" + stream;
