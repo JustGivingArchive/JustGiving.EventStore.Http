@@ -4,7 +4,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.Client.Common.Utils;
@@ -159,7 +158,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 {
                     Log.Debug(_log, "New items in stream {0} were found; repolling", stream);
                     await PollAsyncInternal(stream);
-                    return;
                 }
             }
         }
@@ -174,29 +172,35 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
 
             var baseHandlerInterfaceType = typeof(IHandleEventsOf<>).MakeGenericType(eventType);
-            var handlers = _eventHandlerResolver.GetHandlersOf(baseHandlerInterfaceType).Cast<object>().ToList();
+            var baseMetadataHandlerInterfaceType = typeof(IHandleEventsAndMetadataOf<>).MakeGenericType(eventType);
 
-            if (handlers.Any())
+            var handlers = _eventHandlerResolver.GetHandlersOf(baseHandlerInterfaceType).Cast<object>().ToList();
+            var metadataHandlers = _eventHandlerResolver.GetHandlersOf(baseMetadataHandlerInterfaceType).Cast<object>();
+            
+            var allHandlers = handlers.Concat(metadataHandlers).ToList();
+
+            if (allHandlers.Any())
             {
-                Log.Debug(_log, "{0} handlers found for {1}", handlers.Count, eventType.FullName);
+                Log.Debug(_log, "{0} handlers found for {1}", allHandlers.Count, eventType.FullName);
             }
             else
             {
                 Log.Warning(_log, "No handlers found for {0}", eventType.FullName);
             }
-            return handlers;
+            return allHandlers;
         }
 
         public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
         {
             var @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink);
-            await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo.Title, eventInfo.Updated);
+            await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo);
         }
 
-        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, object @event, string eventTitle, DateTime updated)
+        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, object @event, BasicEventInfo eventInfo)
         {
             var handlerCount = 0;
-
+            var eventTitle = eventInfo.Title;
+            var updated = eventInfo.Updated;
             var errors = new Dictionary<Type, Exception>();
             foreach (var handler in handlers)
             {
@@ -215,7 +219,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 {
                     try
                     {
-                        await (Task)handleMethod.Invoke(handler, new[] { @event });
+                        var arguments = new[] {@event, eventInfo}.Take(handleMethod.GetParameters().Length);
+                        await (Task)handleMethod.Invoke(handler, arguments.ToArray());
                     }
                     catch (Exception invokeException)
                     {
@@ -252,8 +257,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 return result;
             }
 
+            var handlerInterfaces = new[] {typeof (IHandleEventsOf<>), typeof (IHandleEventsAndMetadataOf<>)};
+
             var @interface = concreteHandlerType.GetInterfaces()
-                .Where(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IHandleEventsOf<>) && x.GetGenericArguments()[0].IsAssignableFrom(eventType))
+                .Where(x => x.IsGenericType && handlerInterfaces.Contains(x.GetGenericTypeDefinition()) && x.GetGenericArguments()[0].IsAssignableFrom(eventType))
                 .OrderBy(x => x.GetGenericArguments()[0], new TypeInheritanceComparer())
                 .FirstOrDefault(); //a type can explicitly implement two IHandle<> interfaces (which would be insane, but will now at least work)
 

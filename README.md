@@ -63,6 +63,27 @@ namespace SomeApp.Events
 }
 ```
 
+Alternatively, if you need some of the EventStore metadata as well as the event contents, you can create a handler deriving from IHandleEventsAndMetadataOf<T>
+
+```csharp
+namespace SomeApp.Events
+{
+    public class DoSomethingUsefulWithMetadata : IHandleEventsAndMetadataOf<SomethingHappened>
+    {
+        public Task Handle(SomethingHappened @event, BasicEventInfo metadata)
+        {
+            //Handle the event
+        }
+        
+        public void OnError(Exception ex)
+        {
+            //Handle the exception
+        }
+    }
+}
+```
+
+
 **Q**: What do I need to do to get the subscriber running?<br />
 **A**: This is a little more tricky than the plain client because you will need to implement one or two interfaces:<br /><br />
 [<code>IEventHandlerResolver</code>](https://github.com/JustGiving/JustGiving.EventStore.Http/blob/master/src/JustGiving.EventStore.Http.SubscriberHost/IEventHandlerResolver.cs) - Get all EventHandlers for an event type (or use the Ninject one above)<br />

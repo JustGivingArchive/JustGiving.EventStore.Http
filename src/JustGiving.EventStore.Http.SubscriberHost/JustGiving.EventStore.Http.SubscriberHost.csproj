@@ -53,6 +53,7 @@
     <Compile Include="IEventStreamSubscriberPerformanceMonitor.cs" />
     <Compile Include="IEventStreamSubscriber.cs" />
     <Compile Include="IEventTypeResolver.cs" />
+    <Compile Include="IHandleEventsAndMetadataOf.cs" />
     <Compile Include="IHandleEventsOf.cs" />
     <Compile Include="IStreamPositionRepository.cs" />
     <Compile Include="ISubscriptionTimerManager.cs" />

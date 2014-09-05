@@ -23,7 +23,8 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         private EventStreamSubscriber _subscriber;
 
         private const string StreamName = "abc";
-        private static DateTime EventDate = new DateTime(1, 2, 3);
+        private static readonly DateTime EventDate = new DateTime(1, 2, 3);
+        private static readonly BasicEventInfo EventInfo = new BasicEventInfo { Title = "1@2" , Updated = EventDate};
 
         [SetUp]
         public void Setup()
@@ -101,6 +102,14 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public void GetMethodFromHandler_ShouldBeAbleToFindImplementedInterfaceMethodsWhenInterfaceTypeHandled(Type handlerType)
         {
             var method = _subscriber.GetMethodFromHandler(handlerType, typeof(EventAWithInterface), "Handle");
+            Assert.NotNull(method);//fluent assertions does not support .NotBeNull() on MethodInfo objects
+            method.Name.Should().Be("Handle");
+        }
+
+        [Test]
+        public void GetMethodFromHandler_ShouldBeAbleToFindImplementedInterfaceMethodsForMetadataHandler()
+        {
+            var method = _subscriber.GetMethodFromHandler(typeof(SomeImplicitMetadataHandler), typeof(EventANoBaseOrInterface), "Handle");
             Assert.NotNull(method);//fluent assertions does not support .NotBeNull() on MethodInfo objects
             method.Name.Should().Be("Handle");
         }
@@ -213,23 +222,36 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
+        public void GetHandlersFor_ShouldRequestCorrectMetadataHandlers()
+        {
+            _eventTypeResolverMock.Setup(x => x.Resolve(typeof(EventANoBaseOrInterface).FullName)).Returns(typeof(EventANoBaseOrInterface));
+
+            _subscriber.GetEventHandlersFor(typeof(EventANoBaseOrInterface).FullName);
+
+            _eventHandlerResolverMock.Verify(x => x.GetHandlersOf(typeof(IHandleEventsAndMetadataOf<EventANoBaseOrInterface>)));
+        }
+
+        [Test]
         public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlers()
         {
             var @implicit = new SomeImplicitHandler();
-            var @implicitForParentType = new SomeImplicitHandlerForParentType();
+            var implicitForParentType = new SomeImplicitHandlerForParentType();
             var @explicit = new SomeExplicitHandler();
-            var @explicitForParentType = new SomeExplicitHandlerForParentType();
+            var explicitForParentType = new SomeExplicitHandlerForParentType();
+            var metadataHandler = new SomeImplicitMetadataHandler();
 
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
 
-            var handlers = new IHandleEventsOf<EventANoBaseOrInterface>[] { @implicit, @implicitForParentType, @explicit, @explicitForParentType };
+            var handlers = new object[] { metadataHandler, @implicit, implicitForParentType, @explicit, explicitForParentType };
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventANoBaseOrInterface), handlers, new EventANoBaseOrInterface(), "1@2", DateTime.Now);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventANoBaseOrInterface), handlers, new EventANoBaseOrInterface(), EventInfo);
 
             @implicit.EventA.Should().NotBeNull();
-            @implicitForParentType.@event.Should().NotBeNull();
+            implicitForParentType.@event.Should().NotBeNull();
             @explicit.EventA.Should().NotBeNull();
-            @explicitForParentType.@event.Should().NotBeNull();
+            explicitForParentType.@event.Should().NotBeNull();
+            metadataHandler.EventA.Should().NotBeNull();
+            metadataHandler.Metadata.Should().NotBeNull();
         }
 
         [Test]
@@ -242,7 +264,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var handlers = new IHandleEventsOf<IEvent>[] { @implicit, @explicit };
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventAWithInterface), handlers, new EventAWithInterface(), "1@2", DateTime.Now);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(EventAWithInterface), handlers, new EventAWithInterface(), EventInfo);
 
             @implicit.@event.Should().NotBeNull();
             @explicit.@event.Should().NotBeNull();
@@ -287,7 +309,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor1.Object, performanceMonitor2.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), handlers, new object(), "1@2", EventDate);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), handlers, new object(), EventInfo);
 
             performanceMonitor1.Verify(x => x.Accept(StreamName, typeof(object).FullName, EventDate, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
             performanceMonitor2.Verify(x => x.Accept(StreamName, typeof(object).FullName, EventDate, 2, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
@@ -314,7 +336,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), new[] { handler.Object }, new object(), "1@2", EventDate);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, typeof(object), new[] { handler.Object }, new object(), EventInfo);
 
             called.Should().BeTrue();
         }
@@ -331,7 +353,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [TestCase(typeof(EventCWithBase), "object")]
         [TestCase(typeof(EventCWithBaseAndInterface), "object")]
         [TestCase(typeof(EventDWithBaseWhichHasInterface), "object")]
-        [TestCase(typeof(EventEWithBaseWhichHasInterface), "EventEWithBaseWhichHasInterface")]
+        [TestCase(typeof(EventEWithBaseWhichHasInterface), "EventEWithBaseWhichHasInterface")]   
         public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeCorrectHandlerOverloadForType(Type eventType, string expectedMethod)
         {
             var @implicit = new MultiTypeImplicitHandler();
@@ -341,7 +363,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var handlers = new IHandleEventsOf<object>[] { @implicit, @explicit };
 
-            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, eventType, handlers, Activator.CreateInstance(eventType), "1@2", DateTime.Now);
+            await _subscriber.InvokeMessageHandlersForEventMessageAsync(StreamName, eventType, handlers, Activator.CreateInstance(eventType), EventInfo);
 
             @implicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on implicit handler");
             @explicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on explicit handler");
@@ -362,6 +384,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
         public interface IEvent2 { }
         public abstract class EventBase2 { }
+        public class EventCNoBaseOrInterface { }
         public class EventCWithInterface : IEvent2 { }
         public class EventCWithBase : EventBase2 { }
         public class EventCWithBaseAndInterface : EventBase2, IEvent2 { }
@@ -375,6 +398,20 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             public EventANoBaseOrInterface EventA;
             public Task Handle(EventANoBaseOrInterface EventA) { return Task.Run(() => this.EventA = EventA); }
+            public void OnError(Exception ex, EventANoBaseOrInterface @event) { }
+        }
+
+        public class SomeImplicitMetadataHandler : IHandleEventsAndMetadataOf<EventANoBaseOrInterface>
+        {
+            public EventANoBaseOrInterface EventA;
+            public BasicEventInfo Metadata;
+            public Task Handle(EventANoBaseOrInterface eventA, BasicEventInfo metadata) { 
+                return Task.Run(() =>
+                {
+                    EventA = eventA;
+                    Metadata = metadata;
+                });
+            }
             public void OnError(Exception ex, EventANoBaseOrInterface @event) { }
         }
 

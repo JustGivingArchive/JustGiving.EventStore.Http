@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 
 powershell.exe -NoProfile -ExecutionPolicy unrestricted -command ".\build.ps1 -task %1 ;exit $LASTEXITCODE"
 
