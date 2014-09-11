@@ -122,7 +122,9 @@ var builder = new EventStreamSubscriberSettingsBuilder(someConnection, someEvent
 By default, a maximum of 120 windows will be kept, each representing 30 seconds of activity.
 
 **Q:** Any known bugs?<br />
-**A:** None at present (24/Jun/2014)
+**A:** One (rather major) bug as of 11/Sep/2014 - If you are using the subscriber to back-fill from a queue, you will likely come across a StackOverflowException after processing about 80k messages.
+
+Otherwise, see https://github.com/JustGiving/JustGiving.EventStore.Http/issues - all issues welcome
 
 **Q**: What is the DI/IoC story here?<br />
 **A**: Not ideal, as the interfaces were designed in homage to the GetEventStore TCP client. The builders are designed to be injectable directly, but the stream / subscribers will need a custom builder (hey, the stream endpoint is mandatory anyway...)<br />
