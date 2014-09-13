@@ -119,47 +119,64 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public async Task PollAsyncInternal(string stream)
         {
-            var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream) ?? 0;
-
-            Log.Debug(_log, "Last position for stream {0} was {1}", stream, lastPosition);
-
-            Log.Debug(_log, "Begin reading event metadata for {0}", stream);
-            var processingBatch = await _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize, _longPollingTimeout);
-            Log.Debug(_log, "Finished reading event metadata for {0}: {1}", stream, processingBatch.Status);
-
-            if (processingBatch.Status == StreamReadStatus.Success)
+            var runAgain = false;
+            do
             {
-                Log.Debug(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
-                foreach (var message in processingBatch.Entries)
+                var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream) ?? 0;
+
+                Log.Debug(_log, "Last position for stream {0} was {1}", stream, lastPosition);
+
+                Log.Debug(_log, "Begin reading event metadata for {0}", stream);
+                var processingBatch =
+                    await
+                        _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize,
+                            _longPollingTimeout);
+                Log.Debug(_log, "Finished reading event metadata for {0}: {1}", stream, processingBatch.Status);
+
+                if (processingBatch.Status == StreamReadStatus.Success)
                 {
-                    var handlers = GetEventHandlersFor(message.Summary);
-                    AllEventsStats.MessageProcessed(stream);
-
-                    if (handlers.Any())
+                    Log.Debug(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
+                    foreach (var message in processingBatch.Entries)
                     {
-                        Log.Debug(_log, "Processing event {0} from {1}", message.Id, stream);
+                        var handlers = GetEventHandlersFor(message.Summary);
+                        AllEventsStats.MessageProcessed(stream);
 
-                        await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
+                        if (handlers.Any())
+                        {
+                            Log.Debug(_log, "Processing event {0} from {1}", message.Id, stream);
 
-                        ProcessedEventsStats.MessageProcessed(stream);
+                            await
+                                InvokeMessageHandlersForStreamMessageAsync(stream,
+                                    _eventTypeResolver.Resolve(message.Summary), handlers, message);
 
-                        Log.Debug(_log, "Processed event {0} from {1}", message.Id, stream);
+                            ProcessedEventsStats.MessageProcessed(stream);
+
+                            Log.Debug(_log, "Processed event {0} from {1}", message.Id, stream);
+                        }
+                        else
+                        {
+                            _performanceMonitors.AsParallel()
+                                .ForAll(
+                                    x =>
+                                        x.Accept(stream, message.Summary, message.Updated, 0,
+                                            Enumerable.Empty<KeyValuePair<Type, Exception>>()));
+                        }
+
+                        Log.Debug(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
+                        await _streamPositionRepository.SetPositionForAsync(stream, message.SequenceNumber);
                     }
-                    else
+
+                    runAgain = processingBatch.Entries.Any();
+                    if (runAgain)
                     {
-                        _performanceMonitors.AsParallel().ForAll(x => x.Accept(stream, message.Summary, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>()));
+                        Log.Debug(_log, "New items in stream {0} were found; repolling", stream);
                     }
-
-                    Log.Debug(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
-                    await _streamPositionRepository.SetPositionForAsync(stream, message.SequenceNumber);
                 }
-
-                if (processingBatch.Entries.Any())
+                else
                 {
-                    Log.Debug(_log, "New items in stream {0} were found; repolling", stream);
-                    await PollAsyncInternal(stream);
+                    runAgain = false;
                 }
-            }
+            } while (runAgain);
         }
 
         public IEnumerable<object> GetEventHandlersFor(string eventTypeName)

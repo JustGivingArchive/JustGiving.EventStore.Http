@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading;
 using FluentAssertions;
 using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 using NUnit.Framework;
@@ -47,6 +48,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public void UpdateMonitor_any_stream_should_be_behind_when_0_interval()
         {
             _monitor.UpdateEventStreamSubscriberIntervalMonitor(StreamName, TimeSpan.FromMilliseconds(0));
+            Thread.Sleep(1);
             _monitor.IsAnyStreamBehind().Should().BeTrue();
         }
 

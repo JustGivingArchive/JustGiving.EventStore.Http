@@ -155,7 +155,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
                 () =>
                 {
-                    if (count++ == 2)
+                    if (count++ == 3000)
                     {
                         streamSliceResult.Entries.Clear();
                     }
