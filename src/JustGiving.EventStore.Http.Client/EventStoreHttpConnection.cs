@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using JustGiving.EventStore.Http.Client.Common.Utils;
@@ -104,7 +105,7 @@ namespace JustGiving.EventStore.Http.Client
             {
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
 
-                request.Content = new StringContent(JsonConvert.SerializeObject(events), Encoding.UTF8, "application/json");
+                request.Content = new StringContent(JsonConvert.SerializeObject(events), Encoding.UTF8, "application/vnd.eventstore.events+json");
                 request.Headers.Add("ES-ExpectedVersion", expectedVersion.ToString());
                 var result = await _httpClientProxy.SendAsync(client, request);
 
@@ -128,6 +129,7 @@ namespace JustGiving.EventStore.Http.Client
             {
                 Log.Info(_log, "Reading event from {0}", url);
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.eventstore.atom+json"));
                 var result = await _httpClientProxy.SendAsync(client, request);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
@@ -257,6 +259,7 @@ namespace JustGiving.EventStore.Http.Client
                 var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count);
                 Log.Info(_log, "Reading forwards from {0}", url);
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.eventstore.atom+json"));
                 if (longPollingTimeout.HasValue && longPollingTimeout.Value.TotalSeconds>=1)
                 {
                     request.Headers.Add("ES-LongPoll", longPollingTimeout.Value.TotalSeconds.ToString());

@@ -171,11 +171,11 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
-        public async void AppendToStreamAsync_MediaTypeShouldBeUTF8JsonApplication()
+        public async void AppendToStreamAsync_MediaTypeShouldBeUTF8VendorSpecificJson()
         {
             await AppendToStreamTest(It.IsAny<int>(), It.IsAny<NewEventData>(), (client, request) =>
             {
-                request.Content.Headers.GetValues("Content-Type").ShouldBeEquivalentTo(new[] { "application/json; charset=utf-8" });
+                request.Content.Headers.GetValues("Content-Type").ShouldBeEquivalentTo(new[] { "application/vnd.eventstore.events+json; charset=utf-8" });
             });
         }
 
@@ -238,11 +238,12 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
-        public async void ReadEventAsync_MediaTypeShould_NOT_BeUTF8JsonApplication()//because we lost useful type info, preventing casting back to c#
+        public async void ReadEventAsync_MediaType_ShouldBeVendorSpecificJson()//because we lost useful type info, preventing casting back to c#
         {
             await ReadEventTest(It.IsAny<int>(), (client, request) =>
             {
-                request.Headers.Accept.Should().BeEmpty();
+                request.Headers.Accept.Should().NotBeEmpty();
+                request.Headers.Accept.First().MediaType.Should().Be("application/vnd.eventstore.atom+json");
             });
         }
 
@@ -447,11 +448,12 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
-        public async void ReadStreamEventsForwardAsync_MediaTypeShouldNotBeUTF8JsonApplication()//Because it causes the result to be returned without metadata
+        public async void ReadStreamEventsForwardAsync_MediaTypeShouldBeVendorSpecificJson()//Because it causes the result to be returned without metadata
         {
             await ReadStreamEventsForwardTest(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>(), (client, request) =>
             {
-                request.Headers.Accept.Should().BeEmpty();
+                request.Headers.Accept.Should().NotBeEmpty();
+                request.Headers.Accept.First().MediaType.Should().Be("application/vnd.eventstore.atom+json");
             });
         }
 
