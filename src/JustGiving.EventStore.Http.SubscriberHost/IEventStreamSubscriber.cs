@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 
@@ -11,15 +10,17 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// Poll the apecified stream for new events, and invoke event processors accordingly
         /// </summary>
         /// <param name="stream">The name of the stream to be polled</param>
+        /// <param name="subscriberId">The arbetrary name of a specific scubscriber to a stream, to support multiple subscribers in the same app, which may be at different positions</param>
         /// <param name="pollInterval">The period after receiving no new events that the <see cref="EventStoreHttpConnection"/> should try again. If not specified, the subscriber's default period will be used</param>
         /// <remarks>Note that if a poll yields even a single event, the next poll will occur immediately afterwards</remarks>
-        void SubscribeTo(string stream, TimeSpan? pollInterval = null);
+        void SubscribeTo(string stream, string subscriberId = "", TimeSpan? pollInterval = null);
 
         /// <summary>
         /// Stop polling the specified stream for updates
         /// </summary>
         /// <param name="stream">The name of the stream to be polled</param>
-        void UnsubscribeFrom(string stream);
+        /// <param name="subscriberId">The arbetrary name of a specific scubscriber to a stream, to support multiple subscribers in the same app, which may be at different positions</param>
+        void UnsubscribeFrom(string stream, string subscriberId = "");
 
         /// <summary>
         /// Time-series statistics relating to the processing of every possible message from the event store

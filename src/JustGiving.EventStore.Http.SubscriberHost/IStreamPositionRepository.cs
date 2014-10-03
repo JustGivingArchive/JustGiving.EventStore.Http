@@ -12,14 +12,16 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// Returns the index of most-recently processed event for a given stream
         /// </summary>
         /// <param name="stream">The name of the stream to be queried</param>
+        /// <param name="subscriberId">The arbetrary name of a specific scubscriber to a stream, to support multiple subscribers in the same app, which may be at different positions</param>
         /// <returns>The last-processed position, or null if the stream has not been previously read</returns>
-        Task<int?> GetPositionForAsync(string stream);
+        Task<int?> GetPositionForAsync(string stream, string subscriberId);
 
         /// <summary>
         /// Records the index of most-recently processed event for a given stream
         /// </summary>
         /// <param name="stream">The name of the stream to be queried</param>
+        /// <param name="subscriberId">The arbetrary name of a specific scubscriber to a stream, to support multiple subscribers in the same app, which may be at different positions</param>
         /// <param name="position">The most index of the most-recently processed event</param>
-        Task SetPositionForAsync(string stream, int position);
+        Task SetPositionForAsync(string stream, string subscriberId, int position);
     }
 }

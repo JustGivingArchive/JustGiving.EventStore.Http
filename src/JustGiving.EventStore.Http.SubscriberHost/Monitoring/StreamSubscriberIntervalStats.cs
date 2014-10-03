@@ -5,11 +5,12 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
     {
         public StreamSubscriberIntervalStats(StreamIntervalTick tick)
         {
-            base.Interval = tick.Interval;
-            base.LastTick = tick.LastTick;
+            Interval = tick.Interval;
+            LastTick = tick.LastTick;
         }
 
         public string StreamName { get; set; }
+        public string SubscriberId { get; set; }
         public bool IsStreamBehind { get; set; }
     }
 }

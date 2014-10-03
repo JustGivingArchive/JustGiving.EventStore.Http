@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -7,14 +8,15 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class SubscriptionTimerManager : ISubscriptionTimerManager
     {
-        private readonly Dictionary<string, Timer> _subscriptions = new Dictionary<string, Timer>(StringComparer.InvariantCultureIgnoreCase);
+        private readonly Dictionary<string, Timer> _subscriptions = new Dictionary<string, Timer>();
 
-        public void Add(string stream, TimeSpan pollInterval, Func<Task> handler, Action streamIntervalMonitor)
+        public void Add(string stream, string subscriberId, TimeSpan pollInterval, Func<Task> handler, Action streamIntervalMonitor)
         {
             var actualPollInterval = pollInterval.TotalMilliseconds;
 
+            var timerKey = TimerKeyFor(stream, subscriberId);
             Timer current;
-            if (_subscriptions.TryGetValue(stream, out current))
+            if (_subscriptions.TryGetValue(timerKey, out current))
             {
                 current.Interval = actualPollInterval;
             }
@@ -22,7 +24,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 current = new Timer(actualPollInterval);
                 current.Start();
-                _subscriptions.Add(stream, current);
+                _subscriptions.Add(timerKey, current);
                 current.Elapsed += (s, e) =>
                 {
                     handler();
@@ -33,33 +35,41 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
         }
 
-        public void Remove(string stream)
+        public void Remove(string stream, string subscriberId)
         {
+            var timerKey = TimerKeyFor(stream, subscriberId);
             Timer current;
-            if (_subscriptions.TryGetValue(stream, out current))
+            if (_subscriptions.TryGetValue(timerKey, out current))
             {
                 current.Stop();
                 current.Dispose();
-                _subscriptions.Remove(stream);
+                _subscriptions.Remove(timerKey);
             }
         }
 
-        public void Pause(string stream)
+        public void Pause(string stream, string subscriberId)
         {
+            var timerKey = TimerKeyFor(stream, subscriberId);
             Timer current;
-            if (_subscriptions.TryGetValue(stream, out current))
+            if (_subscriptions.TryGetValue(timerKey, out current))
             {
                 current.Stop();
             }
         }
 
-        public void Resume(string stream)
+        public void Resume(string stream, string subscriberId)
         {
+            var timerKey = TimerKeyFor(stream, subscriberId);
             Timer current;
-            if (_subscriptions.TryGetValue(stream, out current))
+            if (_subscriptions.TryGetValue(timerKey, out current))
             {
                 current.Start();
             }
+        }
+
+        private string TimerKeyFor(string stream, string subscriberId)
+        {
+            return string.IsNullOrEmpty(subscriberId)? stream : string.Concat(stream, "*@:^:@*", subscriberId);
         }
     }
 }

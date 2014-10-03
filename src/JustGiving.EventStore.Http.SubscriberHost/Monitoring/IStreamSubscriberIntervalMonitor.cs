@@ -5,16 +5,16 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 {
     public interface IStreamSubscriberIntervalMonitor
     {
-        void RemoveEventStreamMonitor(string stream);
+        void RemoveEventStreamMonitor(string stream, string subscriberId);
 
-        void UpdateEventStreamSubscriberIntervalMonitor(string stream, TimeSpan interval);
+        void UpdateEventStreamSubscriberIntervalMonitor(string stream, string subscriberId, TimeSpan interval);
 
         IEnumerable<StreamSubscriberIntervalStats> GetStreamsIntervalStats();
 
-        StreamSubscriberIntervalStats GetStreamIntervalStats(string streamName);
+        StreamSubscriberIntervalStats GetStreamIntervalStats(string stream, string subscriberId);
 
         bool IsAnyStreamBehind();
 
-        bool? IsStreamBehind(string stream);
+        bool? IsStreamBehind(string stream, string subscriberId);
     }
 }

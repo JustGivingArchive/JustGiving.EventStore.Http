@@ -7,11 +7,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
     {
         ConcurrentDictionary<string, int> cache = new ConcurrentDictionary<string, int>();
 
-        public async Task<int?> GetPositionForAsync(string stream)
+        public async Task<int?> GetPositionForAsync(string stream, string subscriberId)
         {
             await Task.FromResult(true);
             int position;
-            if (cache.TryGetValue(stream, out position))
+            if (cache.TryGetValue(string.Concat(stream, "*@:^:@*", subscriberId), out position))
             {
                 return position;
             }
@@ -19,9 +19,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             return null;
         }
 
-        public async Task SetPositionForAsync(string stream, int position)
+        public async Task SetPositionForAsync(string stream, string subscriberId, int position)
         {
-            cache[stream] = position;
+            cache[string.Concat(stream, "*@:^:@*", subscriberId)] = position;
             await Task.FromResult(true);
         }
     }

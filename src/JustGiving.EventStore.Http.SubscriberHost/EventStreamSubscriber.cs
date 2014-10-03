@@ -68,41 +68,41 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             ProcessedEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
         }
 
-        public void SubscribeTo(string stream, TimeSpan? pollInterval = null)
+        public void SubscribeTo(string stream, string subscriberId = "", TimeSpan? pollInterval = null)
         {
             lock (_synchroot)
             {
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0} with an interval of {1}", stream, interval);
-                _subscriptionTimerManager.Add(stream, interval, async () => await PollAsync(stream), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval));
+                _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, subscriberId, interval));
                 Log.Info(_log, "Subscribed to {0} with an interval of {1}", stream, interval);
             }
         }
 
-        public void UnsubscribeFrom(string stream)
+        public void UnsubscribeFrom(string stream, string subscriberId)
         {
             lock (_synchroot)
             {
                 Log.Info(_log, "Unsubscribing from {0}", stream);
-                _subscriptionTimerManager.Remove(stream);
+                _subscriptionTimerManager.Remove(stream, subscriberId);
                 Log.Info(_log, "Unsubscribed from {0}", stream);
 
-                StreamSubscriberMonitor.RemoveEventStreamMonitor(stream);
+                StreamSubscriberMonitor.RemoveEventStreamMonitor(stream, subscriberId);
                 Log.Info(_log, "Stream ticks monitor removed from {0}", stream);
             }
         }
 
-        public async Task PollAsync(string stream)
+        public async Task PollAsync(string stream, string subscriberId)
         {
             Log.Info(_log, "Begin polling {0}", stream);
             lock (_synchroot)
             {
-                _subscriptionTimerManager.Pause(stream);//we want to be able to cane a stream if we are not up to date, without reading it twice
+                _subscriptionTimerManager.Pause(stream, subscriberId);//we want to be able to cane a stream if we are not up to date, without reading it twice
             }
 
             try
             {
-                await PollAsyncInternal(stream);
+                await PollAsyncInternal(stream, subscriberId);
             }
             catch (Exception ex)
             {
@@ -111,18 +111,18 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             lock (_synchroot)
             {
-                _subscriptionTimerManager.Resume(stream);
+                _subscriptionTimerManager.Resume(stream, subscriberId);
             }
 
             Log.Info(_log, "Finished polling {0}", stream);
         }
 
-        public async Task PollAsyncInternal(string stream)
+        public async Task PollAsyncInternal(string stream, string subscriberId)
         {
             var runAgain = false;
             do
             {
-                var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream) ?? 0;
+                var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream, subscriberId) ?? 0;
 
                 Log.Debug(_log, "Last position for stream {0} was {1}", stream, lastPosition);
 
@@ -163,7 +163,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         }
 
                         Log.Debug(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
-                        await _streamPositionRepository.SetPositionForAsync(stream, message.SequenceNumber);
+                        await _streamPositionRepository.SetPositionForAsync(stream, subscriberId, message.SequenceNumber);
                     }
 
                     runAgain = processingBatch.Entries.Any();

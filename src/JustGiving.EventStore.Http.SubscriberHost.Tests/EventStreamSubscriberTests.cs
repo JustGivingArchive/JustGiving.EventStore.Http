@@ -23,6 +23,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         private EventStreamSubscriber _subscriber;
 
         private const string StreamName = "abc";
+        private const string SubscriberId = "def";
         private static readonly DateTime EventDate = new DateTime(1, 2, 3);
         private static readonly BasicEventInfo EventInfo = new BasicEventInfo { Title = "1@2" , Updated = EventDate};
 
@@ -43,15 +44,15 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [Test]
         public void SubscribeTo_ShouldInvokeSubscriptionManagerWithCorrectStreamName()
         {
-            _subscriber.SubscribeTo(StreamName, It.IsAny<TimeSpan>());
-            _subscriptionTimerManagerMock.Verify(x => x.Add(StreamName, It.IsAny<TimeSpan>(), It.IsAny<Func<Task>>(), It.IsAny<Action>()));
+            _subscriber.SubscribeTo(StreamName, SubscriberId, It.IsAny<TimeSpan>());
+            _subscriptionTimerManagerMock.Verify(x => x.Add(StreamName, SubscriberId, It.IsAny<TimeSpan>(), It.IsAny<Func<Task>>(), It.IsAny<Action>()));
         }
 
         [Test]
         public void SubscribeTo_ShouldInvokeSubscriptionManagerWithSuppliedPeriodIfPassed()
         {
-            _subscriber.SubscribeTo(It.IsAny<string>(), TimeSpan.FromDays(123));
-            _subscriptionTimerManagerMock.Verify(x => x.Add(It.IsAny<string>(), TimeSpan.FromDays(123), It.IsAny<Func<Task>>(), It.IsAny<Action>()));
+            _subscriber.SubscribeTo(It.IsAny<string>(), It.IsAny<string>(), TimeSpan.FromDays(123));
+            _subscriptionTimerManagerMock.Verify(x => x.Add(It.IsAny<string>(), It.IsAny<string>(), TimeSpan.FromDays(123), It.IsAny<Func<Task>>(), It.IsAny<Action>()));
         }
 
         [Test]
@@ -60,23 +61,22 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithDefaultPollingInterval(TimeSpan.FromDays(456)).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).WithCustomSubscriptionTimerManager(_subscriptionTimerManagerMock.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
             _subscriber.SubscribeTo(It.IsAny<string>());
-            _subscriptionTimerManagerMock.Verify(x => x.Add(It.IsAny<string>(), TimeSpan.FromDays(456), It.IsAny<Func<Task>>(), It.IsAny<Action>()));
+            _subscriptionTimerManagerMock.Verify(x => x.Add(It.IsAny<string>(), It.IsAny<string>(), TimeSpan.FromDays(456), It.IsAny<Func<Task>>(), It.IsAny<Action>()));
         }
 
         [Test]
         public void UnsubscribeFrom_ShouldInvokeSubscriptionManager()
         {
-            _subscriber.UnsubscribeFrom(StreamName);
-            _subscriptionTimerManagerMock.Verify(x => x.Remove(StreamName));
+            _subscriber.UnsubscribeFrom(StreamName, SubscriberId);
+            _subscriptionTimerManagerMock.Verify(x => x.Remove(StreamName, SubscriberId));
         }
 
         [Test]
         public void UnsubscribeFrom_ShouldRemoveStreamSubscriberIntervalMonitor()
         {
+            _subscriber.UnsubscribeFrom(StreamName, SubscriberId);
 
-            _subscriber.UnsubscribeFrom(StreamName);
-
-            _streamSubscriberIntervalMonitorMock.Verify(x => x.RemoveEventStreamMonitor(StreamName));
+            _streamSubscriberIntervalMonitorMock.Verify(x => x.RemoveEventStreamMonitor(StreamName, SubscriberId));
         }
 
         [TestCase(typeof(SomeImplicitHandler))]
@@ -123,9 +123,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             };
 
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => result);
-            await _subscriber.PollAsync(StreamName);
+            await _subscriber.PollAsync(StreamName, SubscriberId);
 
-            _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName));
+            _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName, SubscriberId));
         }
 
         [Test]
@@ -137,9 +137,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             };
 
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => result);
-            await _subscriber.PollAsync(StreamName);
+            await _subscriber.PollAsync(StreamName, SubscriberId);
 
-            _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName));
+            _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName, SubscriberId));
         }
 
         [Test]
@@ -161,10 +161,10 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                     }
                 });
             _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
-            await _subscriber.PollAsync(StreamName);
+            await _subscriber.PollAsync(StreamName, SubscriberId);
 
-            _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName), Times.Once);
-            _subscriptionTimerManagerMock.Verify(x => x.Resume(StreamName), Times.Once);
+            _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName, SubscriberId), Times.Once);
+            _subscriptionTimerManagerMock.Verify(x => x.Resume(StreamName, SubscriberId), Times.Once);
         }
 
         [Test]
@@ -177,7 +177,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             };
 
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => result);
-            await _subscriber.PollAsync(StreamName);
+            await _subscriber.PollAsync(StreamName, SubscriberId);
         }
 
         [Test]
@@ -199,9 +199,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
 
-            await _subscriber.PollAsync(StreamName);
+            await _subscriber.PollAsync(StreamName, SubscriberId);
 
-            _streamPositionRepositoryMock.Verify(x => x.SetPositionForAsync(StreamName, 123));
+            _streamPositionRepositoryMock.Verify(x => x.SetPositionForAsync(StreamName, SubscriberId, 123));
         }
 
         [Test]
@@ -293,7 +293,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).AddPerformanceMonitor(performanceMonitor.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
 
-            await _subscriber.PollAsync(StreamName);
+            await _subscriber.PollAsync(StreamName, SubscriberId);
 
             performanceMonitor.Verify(x => x.Accept(StreamName, "SomeType", EventDate, 0, It.IsAny<IEnumerable<KeyValuePair<Type, Exception>>>()));
         }
