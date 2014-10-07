@@ -15,6 +15,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 
         bool IsAnyStreamBehind();
 
-        bool? IsStreamBehind(string stream, string subscriberId);
+        bool? IsStreamBehind(string stream, string subscriberId=null);
     }
 }

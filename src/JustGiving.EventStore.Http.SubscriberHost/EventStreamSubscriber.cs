@@ -68,7 +68,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             ProcessedEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
         }
 
-        public void SubscribeTo(string stream, string subscriberId = "", TimeSpan? pollInterval = null)
+        public void SubscribeTo(string stream, string subscriberId, TimeSpan? pollInterval = null)
         {
             lock (_synchroot)
             {

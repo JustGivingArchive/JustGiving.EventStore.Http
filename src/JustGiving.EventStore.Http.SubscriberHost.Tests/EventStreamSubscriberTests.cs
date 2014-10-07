@@ -60,7 +60,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithDefaultPollingInterval(TimeSpan.FromDays(456)).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).WithCustomSubscriptionTimerManager(_subscriptionTimerManagerMock.Object);
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
-            _subscriber.SubscribeTo(It.IsAny<string>());
+            _subscriber.SubscribeTo(It.IsAny<string>(), It.IsAny<string>());
             _subscriptionTimerManagerMock.Verify(x => x.Add(It.IsAny<string>(), It.IsAny<string>(), TimeSpan.FromDays(456), It.IsAny<Func<Task>>(), It.IsAny<Action>()));
         }
 
