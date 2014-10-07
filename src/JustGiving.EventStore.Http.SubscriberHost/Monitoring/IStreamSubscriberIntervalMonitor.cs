@@ -7,11 +7,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
     {
         void RemoveEventStreamMonitor(string stream, string subscriberId);
 
-        void UpdateEventStreamSubscriberIntervalMonitor(string stream, string subscriberId, TimeSpan interval);
+        void UpdateEventStreamSubscriberIntervalMonitor(string stream, TimeSpan interval, string subscriberId=null);
 
         IEnumerable<StreamSubscriberIntervalStats> GetStreamsIntervalStats();
 
-        StreamSubscriberIntervalStats GetStreamIntervalStats(string stream, string subscriberId);
+        StreamSubscriberIntervalStats GetStreamIntervalStats(string stream, string subscriberId=null);
 
         bool IsAnyStreamBehind();
 

@@ -74,7 +74,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0} with an interval of {1}", stream, interval);
-                _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, subscriberId, interval));
+                _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval, subscriberId));
                 Log.Info(_log, "Subscribed to {0} with an interval of {1}", stream, interval);
             }
         }

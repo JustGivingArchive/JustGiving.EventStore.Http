@@ -32,7 +32,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
             }).ToList();
         }
 
-        public void UpdateEventStreamSubscriberIntervalMonitor(string stream, string subscriberId, TimeSpan interval)
+        public void UpdateEventStreamSubscriberIntervalMonitor(string stream, TimeSpan interval, string subscriberId=null)
         {
             this[TimerKeyFor(stream, subscriberId)] = new StreamIntervalTick
             {

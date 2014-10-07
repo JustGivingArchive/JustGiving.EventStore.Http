@@ -60,6 +60,7 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="StreamSubscriberIntervalMonitorTestsWithExplicitSubscriberId.cs" />
     <Compile Include="StreamSubscriberIntervalMonitorTests.cs" />
     <Compile Include="EventStreamSubscriberTests.cs" />
     <Compile Include="MemoryBackedStreamPositionRepositoryForDebuggingTests.cs" />
