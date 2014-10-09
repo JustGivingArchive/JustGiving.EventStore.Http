@@ -122,7 +122,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             var runAgain = false;
             do
             {
-                var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream, subscriberId) ?? 0;
+                var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream, subscriberId) ?? -1;
 
                 Log.Debug(_log, "Last position for stream {0} was {1}", stream, lastPosition);
 
