@@ -73,9 +73,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             lock (_synchroot)
             {
                 var interval = pollInterval ?? _defaultPollingInterval;
-                Log.Info(_log, "Subscribing to {0} with an interval of {1}", stream, interval);
+                Log.Info(_log, "Subscribing to {0}|{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
                 _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval, subscriberId));
-                Log.Info(_log, "Subscribed to {0} with an interval of {1}", stream, interval);
+                Log.Info(_log, "Subscribed to {0}{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
             }
         }
 
@@ -83,18 +83,18 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         {
             lock (_synchroot)
             {
-                Log.Info(_log, "Unsubscribing from {0}", stream);
+                Log.Info(_log, "Unsubscribing from {0}|{1}", stream, subscriberId ?? "default");
                 _subscriptionTimerManager.Remove(stream, subscriberId);
-                Log.Info(_log, "Unsubscribed from {0}", stream);
+                Log.Info(_log, "Unsubscribed from {0}|{1}", stream, subscriberId);
 
                 StreamSubscriberMonitor.RemoveEventStreamMonitor(stream, subscriberId);
-                Log.Info(_log, "Stream ticks monitor removed from {0}", stream);
+                Log.Info(_log, "Stream ticks monitor removed from {0}|{1}", stream, subscriberId ?? "default");
             }
         }
 
         public async Task PollAsync(string stream, string subscriberId)
         {
-            Log.Info(_log, "Begin polling {0}", stream);
+            Log.Info(_log, "{0}|{1}: Begin polling", stream, subscriberId ?? "default");
             lock (_synchroot)
             {
                 _subscriptionTimerManager.Pause(stream, subscriberId);//we want to be able to cane a stream if we are not up to date, without reading it twice
@@ -106,7 +106,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
             catch (Exception ex)
             {
-                Log.Error(_log, ex, "Generic last-cahnce catch");
+                Log.Error(_log, ex, "{0}|{1}: Generic last-cahnce catch", stream, subscriberId ?? "default");
             }
 
             lock (_synchroot)
@@ -114,7 +114,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 _subscriptionTimerManager.Resume(stream, subscriberId);
             }
 
-            Log.Info(_log, "Finished polling {0}", stream);
+            Log.Info(_log, "{0}|{1}: Finished polling", stream, subscriberId);
         }
 
         public async Task PollAsyncInternal(string stream, string subscriberId)
@@ -124,18 +124,18 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream, subscriberId) ?? -1;
 
-                Log.Debug(_log, "Last position for stream {0} was {1}", stream, lastPosition);
+                Log.Debug(_log, "{0}|{1}: Last position for stream was {2}", stream, subscriberId ?? "default", lastPosition);
 
-                Log.Debug(_log, "Begin reading event metadata for {0}", stream);
+                Log.Debug(_log, "{0}|{1}: Begin reading event metadata", stream, subscriberId??"default");
                 var processingBatch =
                     await
                         _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize,
                             _longPollingTimeout);
-                Log.Debug(_log, "Finished reading event metadata for {0}: {1}", stream, processingBatch.Status);
+                Log.Debug(_log, "{0}|{1}: Finished reading event metadata: {2}", stream, subscriberId ?? "default", processingBatch.Status);
 
                 if (processingBatch.Status == StreamReadStatus.Success)
                 {
-                    Log.Debug(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
+                    Log.Debug(_log, "{0}|{1}: Processing {2} events", stream, subscriberId ?? "default", processingBatch.Entries.Count);
                     foreach (var message in processingBatch.Entries)
                     {
                         var handlers = GetEventHandlersFor(message.Summary, subscriberId);
@@ -143,7 +143,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                         if (handlers.Any())
                         {
-                            Log.Debug(_log, "Processing event {0} from {1}", message.Id, stream);
+                            Log.Debug(_log, "{0}|{1}: Processing event {2}", stream, subscriberId ?? "default", message.Id);
 
                             await
                                 InvokeMessageHandlersForStreamMessageAsync(stream,
@@ -151,7 +151,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                             ProcessedEventsStats.MessageProcessed(stream);
 
-                            Log.Debug(_log, "Processed event {0} from {1}", message.Id, stream);
+                            Log.Debug(_log, "{0}|{1}: Processed event {2}", stream, subscriberId ?? "default", message.Id);
                         }
                         else
                         {
@@ -162,14 +162,14 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                                             Enumerable.Empty<KeyValuePair<Type, Exception>>()));
                         }
 
-                        Log.Debug(_log, "Storing last read event for {0} as {1}", stream, message.SequenceNumber);
+                        Log.Debug(_log, "{0}|{1}: Storing last read event  as {2}", stream, subscriberId ?? "default", message.SequenceNumber);
                         await _streamPositionRepository.SetPositionForAsync(stream, subscriberId, message.SequenceNumber);
                     }
 
                     runAgain = processingBatch.Entries.Any();
                     if (runAgain)
                     {
-                        Log.Debug(_log, "New items in stream {0} were found; repolling", stream);
+                        Log.Debug(_log, "{0}|{1}: New items were found; repolling", stream, subscriberId ?? "default");
                     }
                 }
                 else
