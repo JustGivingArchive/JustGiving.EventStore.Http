@@ -121,8 +121,35 @@ var builder = new EventStreamSubscriberSettingsBuilder(someConnection, someEvent
 
 By default, a maximum of 120 windows will be kept, each representing 30 seconds of activity.
 
+**Q:** Can I have multiple handlers for a stream or message?<br />
+**A:** Yes; They will be fired in broadly in parallel, depending on you hardware and the number of handlers
+
+**Q:** Can I subscribe different handlers to different positions in the stream? What does this even mean<br />
+**A:** Yes: Sometimes you may want want to create a handler that starts from the beginning of a stream whilst allowing other handlers to progress from where they left off (e.g. to migrate data to a new table whilst keeping the system online)
+
+To support this, you need to create an event handler with a NonDefaultSubscriber attribute, supplying an alternate 'Subscriber Id'.  Then kick off the stream in your subscriber host...
+
+
+```csharp
+
+public class OriginalEventHandler : IHandleEventsOf<SomeEvent>
+{...}
+
+[NonDefaultSubscriber("BackfillingSomeEventV1")]
+public class BackfillingEventHandler : IHandleEventsOf<SomeEvent>
+{...}
+
+//subscriber setup code...
+
+_subscriber.SubscribeTo("SomeStream"); //Resume the original event processing to keep your current oltb db up to date
+_subscriber.SubscribeTo("SomeStream", "BackfillingSomeEventV1"); //whilst kicking off a new subscription against the same stream, backfilling your new db
+
+//subscriber setup code...
+
+```
+
 **Q:** Any known bugs?<br />
-**A:** None as of 13/Sep/2014
+**A:** None as of 08/Oct/2014
 
 Otherwise, see https://github.com/JustGiving/JustGiving.EventStore.Http/issues - all issues welcome
 

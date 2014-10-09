@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using JustGiving.EventStore.Http.Client;
@@ -209,7 +210,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             _eventTypeResolverMock.Setup(x => x.Resolve(typeof(EventANoBaseOrInterface).FullName)).Returns(typeof(EventANoBaseOrInterface));
 
-            _subscriber.GetEventHandlersFor(typeof(EventANoBaseOrInterface).FullName);
+            _subscriber.GetEventHandlersFor(typeof(EventANoBaseOrInterface).FullName, null);
 
             _eventHandlerResolverMock.Verify(x => x.GetHandlersOf(typeof(IHandleEventsOf<EventANoBaseOrInterface>)));
         }
@@ -217,7 +218,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [Test]
         public void GetEventHandlersFor_ShouldReturnAnEumptyEnumerableIfANullEventTypeIsPassed()
         {
-            var result = _subscriber.GetEventHandlersFor(null);
+            var result = _subscriber.GetEventHandlersFor(null, null);
             result.Should().NotBeNull();
         }
 
@@ -226,9 +227,42 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             _eventTypeResolverMock.Setup(x => x.Resolve(typeof(EventANoBaseOrInterface).FullName)).Returns(typeof(EventANoBaseOrInterface));
 
-            _subscriber.GetEventHandlersFor(typeof(EventANoBaseOrInterface).FullName);
+            _subscriber.GetEventHandlersFor(typeof(EventANoBaseOrInterface).FullName, null);
 
             _eventHandlerResolverMock.Verify(x => x.GetHandlersOf(typeof(IHandleEventsAndMetadataOf<EventANoBaseOrInterface>)));
+        }
+
+        [Test]
+        public void GetHandlersApplicableToSubscriberId_ShouldOnlyYieldDefaultHandlersWhenRunningForDefaultSubscriber()
+        {
+            var input = new object[] {new SomeHandlerForTheDefaultSubscriberId(), new SomeHandlerForACustomSubscriberId()};
+            
+            var result = _subscriber.GetHandlersApplicableToSubscriberId(input, null).ToList();
+            
+            result.Count.Should().Be(1);
+            result[0].Should().BeOfType<SomeHandlerForTheDefaultSubscriberId>();
+        }
+
+        [Test]
+        public void GetHandlersApplicableToSubscriberId_ShouldOnlyYieldCustomHandlersWhenRunningForCustomSubscriber()
+        {
+            var input = new object[] { new SomeHandlerForTheDefaultSubscriberId(), new SomeHandlerForACustomSubscriberId() };
+            
+            var result = _subscriber.GetHandlersApplicableToSubscriberId(input, "SomeSubscriberId").ToList();
+
+            result.Count.Should().Be(1);
+            result[0].Should().BeOfType<SomeHandlerForACustomSubscriberId>();
+        }
+
+        [Test]
+        public void GetHandlersApplicableToSubscriberId_ShouldYieldCorrectCustomHandlersWhenRunningForCustomSubscriber()
+        {
+            var input = new object[] { new SomeHandlerForACustomSubscriberId(), new SomeOtherHandlerForACustomSubscriberId() };
+
+            var result = _subscriber.GetHandlersApplicableToSubscriberId(input, "SomeSubscriberId").ToList();
+
+            result.Count.Should().Be(1);
+            result[0].Should().BeOfType<SomeHandlerForACustomSubscriberId>();
         }
 
         [Test]
@@ -447,6 +481,28 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             public IEvent @event;
             Task IHandleEventsOf<IEvent>.Handle(IEvent EventA) { return Task.Run(() => this.@event = EventA); }
+            void IHandleEventsOf<IEvent>.OnError(Exception ex, IEvent @event) { }
+        }
+
+        public class SomeHandlerForTheDefaultSubscriberId : IHandleEventsOf<IEvent>
+        {
+            public IEvent @event;
+            Task IHandleEventsOf<IEvent>.Handle(IEvent EventA) { return Task.Run(() => this.@event = EventA); }
+            void IHandleEventsOf<IEvent>.OnError(Exception ex, IEvent @event) { }
+        }
+
+        [NonDefaultSubscriber("SomeSubscriberId")]
+        public class SomeHandlerForACustomSubscriberId : IHandleEventsOf<IEvent>
+        {
+            public IEvent @event;
+            Task IHandleEventsOf<IEvent>.Handle(IEvent EventA) { return Task.Run(() => @event = EventA); }
+            void IHandleEventsOf<IEvent>.OnError(Exception ex, IEvent @event) { }
+        }
+        [NonDefaultSubscriber("SomeOtherSubscriberId")]
+        public class SomeOtherHandlerForACustomSubscriberId : IHandleEventsOf<IEvent>
+        {
+            public IEvent @event;
+            Task IHandleEventsOf<IEvent>.Handle(IEvent EventA) { return Task.Run(() => @event = EventA); }
             void IHandleEventsOf<IEvent>.OnError(Exception ex, IEvent @event) { }
         }
 

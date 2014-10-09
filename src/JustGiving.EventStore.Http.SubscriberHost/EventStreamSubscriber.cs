@@ -138,7 +138,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     Log.Debug(_log, "Processing {0} events for {1}", processingBatch.Entries.Count, stream);
                     foreach (var message in processingBatch.Entries)
                     {
-                        var handlers = GetEventHandlersFor(message.Summary);
+                        var handlers = GetEventHandlersFor(message.Summary, subscriberId);
                         AllEventsStats.MessageProcessed(stream);
 
                         if (handlers.Any())
@@ -179,7 +179,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             } while (runAgain);
         }
 
-        public IEnumerable<object> GetEventHandlersFor(string eventTypeName)
+        public IEnumerable<object> GetEventHandlersFor(string eventTypeName, string subscriberId)
         {
             var eventType = _eventTypeResolver.Resolve(eventTypeName);
             if (eventType == null)
@@ -194,17 +194,29 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             var handlers = _eventHandlerResolver.GetHandlersOf(baseHandlerInterfaceType).Cast<object>().ToList();
             var metadataHandlers = _eventHandlerResolver.GetHandlersOf(baseMetadataHandlerInterfaceType).Cast<object>();
             
-            var allHandlers = handlers.Concat(metadataHandlers).ToList();
+            var allHandlers = handlers.Concat(metadataHandlers);
+            var handlersForSubscriberId = GetHandlersApplicableToSubscriberId(allHandlers, subscriberId).ToList();
 
-            if (allHandlers.Any())
+            if (handlersForSubscriberId.Any())
             {
-                Log.Debug(_log, "{0} handlers found for {1}", allHandlers.Count, eventType.FullName);
+                Log.Debug(_log, "{0} handlers found for {1}", handlersForSubscriberId.Count, eventType.FullName);
             }
             else
             {
                 Log.Warning(_log, "No handlers found for {0}", eventType.FullName);
             }
-            return allHandlers;
+            return handlersForSubscriberId;
+        }
+
+        public IEnumerable<object> GetHandlersApplicableToSubscriberId(IEnumerable<object> handlers, string subscriberId)
+        {
+            if (subscriberId == null)
+            {
+                return handlers.Where(x => !x.GetType().GetCustomAttributes<NonDefaultSubscriberAttribute>().Any());
+            }
+
+            return handlers.Where(x =>x.GetType().GetCustomAttributes<NonDefaultSubscriberAttribute>()
+                                       .Any(att => att.SupportedSubscriberId == subscriberId));
         }
 
         public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)

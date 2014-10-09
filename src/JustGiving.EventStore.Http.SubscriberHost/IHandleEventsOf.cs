@@ -5,7 +5,7 @@ using JustGiving.EventStore.Http.Client;
 namespace JustGiving.EventStore.Http.SubscriberHost
 {
     /// <summary>
-    /// A handler for events coming from the <see cref="EventStoreHttpConnection"/>
+    /// A handler for events coming from the <see cref="EventStoreHttpConnection"/> for 
     /// </summary>
     /// <typeparam name="T">The type of event this handler handles</typeparam>
     public interface IHandleEventsOf<in T>
