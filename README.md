@@ -25,7 +25,11 @@ FAQs
     [**JustGiving.EventStore.Http.SubscriberHost.Ninject**](http://www.nuget.org/packages/JustGiving.EventStore.Http.SubscriberHost.Ninject/) - A support library for the SubscriberHost to find MessageHandlers for messages<br />
 
 **Q**: What is the minimum I need to do to get a client running?<br />
-**A**: <code>var connection = EventStoreHttpConnection.Create("http://localhost:9113");</code><br />
+**A**: Not much:
+```csharp
+var connection = EventStoreHttpConnection.Create("http://localhost:2113");
+await connection.AppendToStreamAsync("someStream", someEvent);
+```
 If you please, you can create a new <code>ConnectionSettingsBuilder()</code> to build a custom ConnectionSettings object.
 
 **Q**: What exactly does the subscriber do?<br />
@@ -149,7 +153,7 @@ _subscriber.SubscribeTo("SomeStream", "BackfillingSomeEventV1"); //whilst kickin
 ```
 
 **Q:** Any known bugs?<br />
-**A:** None as of 08/Oct/2014
+**A:** None as of 17/Oct/2014
 
 Otherwise, see https://github.com/JustGiving/JustGiving.EventStore.Http/issues - all issues welcome
 

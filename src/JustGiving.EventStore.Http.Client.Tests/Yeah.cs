@@ -34,10 +34,8 @@ namespace JustGiving.EventStore.Http.Client.Tests
                     Donor = "Jon",
                     Success = true
                 };
-
-                var @event = NewEventData.Create(d);
-
-                await _connection.AppendToStreamAsync(StreamName, ExpectedVersion.Any, @event);
+                
+                await _connection.AppendToStreamAsync(StreamName, d);
             }
         }
 

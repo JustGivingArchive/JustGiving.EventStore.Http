@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -90,6 +91,11 @@ namespace JustGiving.EventStore.Http.Client
                     throw new EventStoreHttpException(result.Content.ToString(), result.ReasonPhrase, result.StatusCode);
                 }
             }
+        }
+
+        public async Task AppendToStreamAsync<T>(string stream, params T[] events)
+        {
+            await AppendToStreamAsync(stream, ExpectedVersion.Any, events.Select(NewEventData.Create).ToArray());
         }
 
         public async Task AppendToStreamAsync(string stream, params NewEventData[] events)

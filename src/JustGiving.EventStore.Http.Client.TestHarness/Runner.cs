@@ -79,7 +79,7 @@ namespace JustGiving.EventStore.Http.Client.TestHarness
 
         private async Task Append()
         {
-            await connection.AppendToStreamAsync(options.StreamName, ExpectedVersion.Any, NewEventData.Create(new StubItem()));
+            await connection.AppendToStreamAsync(options.StreamName, new StubItem());
         }
 
         private async Task ReadHead()

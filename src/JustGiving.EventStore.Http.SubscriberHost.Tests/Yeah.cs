@@ -18,9 +18,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             resolver.Setup(x=>x.GetHandlersOf(It.IsAny<Type>())).Returns(new[]{new SomeEventHandler()});
             var subscriber = EventStreamSubscriber.Create(new EventStreamSubscriberSettingsBuilder(connection, resolver.Object , new MemoryBackedStreamPositionRepositoryForDebugging()));
 
-            await connection.AppendToStreamAsync("abc", ExpectedVersion.Any, NewEventData.Create(new SomeEvent()));
-            await connection.AppendToStreamAsync("abc", ExpectedVersion.Any, NewEventData.Create(new SomeEvent()));
-            await connection.AppendToStreamAsync("abc", ExpectedVersion.Any, NewEventData.Create(new SomeEvent()));
+            await connection.AppendToStreamAsync("abc", new SomeEvent());
+            await connection.AppendToStreamAsync("abc", new SomeEvent());
+            await connection.AppendToStreamAsync("abc", new SomeEvent());
             
             subscriber.SubscribeTo("abc");
 
