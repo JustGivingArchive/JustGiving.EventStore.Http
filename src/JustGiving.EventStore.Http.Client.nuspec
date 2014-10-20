@@ -8,7 +8,7 @@
     <owners>JustGiving</owners>
     <summary>JustGiving.EventStore.Http.Client</summary>
     <description>Wrapper for simple integration with EventStore.</description>
-    <projectUrl>https://githttps://github.com/JustGiving/JustGiving.EventStore.Http</projectUrl>
+    <projectUrl>https://github.com/JustGiving/JustGiving.EventStore.Http</projectUrl>
     <tags>EventStore event store soa http</tags>
     <licenseUrl>https://github.com/JustGiving/JustGiving.EventStore.Http</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
