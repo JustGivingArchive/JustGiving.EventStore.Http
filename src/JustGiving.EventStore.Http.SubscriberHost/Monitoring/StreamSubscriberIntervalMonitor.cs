@@ -80,7 +80,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 
         private string TimerKeyFor(string stream, string subscriberId)
         {
-            return string.IsNullOrEmpty(subscriberId) ? stream : string.Concat(stream, "*@:^:@*", subscriberId);
+            return string.IsNullOrEmpty(subscriberId) ? stream : string.Concat(stream, EventStreamSubscriber.StreamIdentifierSeparator, subscriberId);
         }
 
         private Tuple<string, string> SubscriberDetailsFromKey(string key)
@@ -90,7 +90,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
                 return null;
             }
 
-            var keyParts = key.Split(new []{"*@:^:@*"},  StringSplitOptions.RemoveEmptyEntries);
+            var keyParts = key.Split(new[] { EventStreamSubscriber.StreamIdentifierSeparator }, StringSplitOptions.RemoveEmptyEntries);
             if (keyParts.Length == 1)
             {
                 return Tuple.Create(keyParts[0], (string)null);

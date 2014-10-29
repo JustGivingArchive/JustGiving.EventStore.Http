@@ -14,6 +14,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriber : IEventStreamSubscriber
     {
+        public const string StreamIdentifierSeparator = "*@:^:@*";
+
         private readonly IEventStoreHttpConnection _connection;
         private readonly IEventHandlerResolver _eventHandlerResolver;
         private readonly IStreamPositionRepository _streamPositionRepository;
@@ -303,6 +305,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             result = @interface.GetMethod(methodName);
             methodCache.TryAdd(cacheKey, result);
             return result;
+        }
+
+        public IEnumerable<StreamSubscription> GetSubscriptions()
+        {
+            return _subscriptionTimerManager.GetSubscriptions();
         }
     }
 }

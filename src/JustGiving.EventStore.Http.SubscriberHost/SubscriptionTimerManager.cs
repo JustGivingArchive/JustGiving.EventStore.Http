@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -69,7 +68,18 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         private string TimerKeyFor(string stream, string subscriberId)
         {
-            return string.IsNullOrEmpty(subscriberId)? stream : string.Concat(stream, "*@:^:@*", subscriberId);
+            return string.IsNullOrEmpty(subscriberId) ? stream : string.Concat(stream, EventStreamSubscriber.StreamIdentifierSeparator, subscriberId);
+        }
+
+        public IEnumerable<StreamSubscription> GetSubscriptions()
+        {
+            foreach (var subscription in _subscriptions)
+            {
+                var interval = TimeSpan.FromMilliseconds(subscription.Value.Interval);
+                var subscriptionParts = subscription.Key.Split(new[] {EventStreamSubscriber.StreamIdentifierSeparator}, StringSplitOptions.RemoveEmptyEntries);
+
+                yield return new StreamSubscription(subscriptionParts[0], subscriptionParts.Length>1?subscriptionParts[1]:null, interval, subscription.Value.Enabled);
+            }
         }
     }
 }

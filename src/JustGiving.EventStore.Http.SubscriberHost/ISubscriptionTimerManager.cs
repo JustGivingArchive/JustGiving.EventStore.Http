@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
@@ -13,5 +14,6 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         void Remove(string stream, string subscriberId);
         void Pause(string stream, string subscriberId);
         void Resume(string stream, string subscriberId);
+        IEnumerable<StreamSubscription> GetSubscriptions();
     }
 }

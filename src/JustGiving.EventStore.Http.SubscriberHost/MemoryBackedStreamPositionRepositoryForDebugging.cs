@@ -11,7 +11,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         {
             await Task.FromResult(true);
             int position;
-            if (cache.TryGetValue(string.Concat(stream, "*@:^:@*", subscriberId), out position))
+            if (cache.TryGetValue(string.Concat(stream, EventStreamSubscriber.StreamIdentifierSeparator, subscriberId), out position))
             {
                 return position;
             }
@@ -21,7 +21,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public async Task SetPositionForAsync(string stream, string subscriberId, int position)
         {
-            cache[string.Concat(stream, "*@:^:@*", subscriberId)] = position;
+            cache[string.Concat(stream, EventStreamSubscriber.StreamIdentifierSeparator, subscriberId)] = position;
             await Task.FromResult(true);
         }
     }

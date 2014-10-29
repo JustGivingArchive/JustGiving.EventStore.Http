@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 
@@ -36,6 +37,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         /// Stores the latest ticks and their intervals for all streams
         /// </summary>
         IStreamSubscriberIntervalMonitor StreamSubscriberMonitor { get; }
-        
+
+        IEnumerable<StreamSubscription> GetSubscriptions();
     }
 }
