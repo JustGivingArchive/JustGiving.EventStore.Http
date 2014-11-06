@@ -173,6 +173,12 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     {
                         Log.Debug(_log, "{0}|{1}: New items were found; repolling", stream, subscriberId ?? "default");
                     }
+
+                    if (!_subscriptionTimerManager.GetSubscriptions().Any())
+                    {
+                        Log.Debug(_log, "{0}|{1}: no more subscribers.", stream, subscriberId ?? "default");
+                        runAgain = false;
+                    }
                 }
                 else
                 {
