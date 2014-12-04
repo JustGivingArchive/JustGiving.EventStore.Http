@@ -192,7 +192,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             var eventType = _eventTypeResolver.Resolve(eventTypeName);
             if (eventType == null)
             {
-                Log.Warning(_log, "An unsupported event type was passed in No event type found for {0}", eventTypeName);
+                Log.Info(_log, "An unsupported event type was passed in. No event type found for {0}", eventTypeName);
                 return Enumerable.Empty<object>();
             }
 
@@ -211,7 +211,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
             else
             {
-                Log.Warning(_log, "No handlers found for {0}", eventType.FullName);
+                Log.Debug(_log, "No handlers found for {0}", eventType.FullName);
             }
             return handlersForSubscriberId;
         }
