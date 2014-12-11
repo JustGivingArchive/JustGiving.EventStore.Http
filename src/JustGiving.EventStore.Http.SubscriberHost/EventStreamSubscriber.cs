@@ -108,7 +108,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
             catch (Exception ex)
             {
-                Log.Error(_log, ex, "{0}|{1}: Generic last-cahnce catch", stream, subscriberId ?? "default");
+                Log.Error(_log, ex, "{0}|{1}: Generic last-chance catch", stream, subscriberId ?? "default");
             }
 
             lock (_synchroot)
@@ -147,13 +147,17 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         {
                             Log.Debug(_log, "{0}|{1}: Processing event {2}", stream, subscriberId ?? "default", message.Id);
 
-                            await
-                                InvokeMessageHandlersForStreamMessageAsync(stream,
-                                    _eventTypeResolver.Resolve(message.Summary), handlers, message);
+                            try
+                            {
+                                await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
+                                ProcessedEventsStats.MessageProcessed(stream);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(_log, "{0}|{1}: Error invoking message handlers for message {2}: {3}", stream, subscriberId ?? "default", message.Id, ex);
+                            }
 
-                            ProcessedEventsStats.MessageProcessed(stream);
-
-                            Log.Debug(_log, "{0}|{1}: Processed event {2}", stream, subscriberId ?? "default", message.Id);
+                            Log.Debug(_log, "{0}|{1}: Exception event {2}", stream, subscriberId ?? "default", message.Id);
                         }
                         else
                         {
@@ -271,11 +275,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         errorMethod.Invoke(handler, new[] { invokeException, @event });
                     }
                 }
-                catch (Exception deserialisationException)
+                catch (Exception errorHandlingException)
                 {
-                    var errorMessage = string.Format("{0} thrown rehydrating event {1}",
-                        deserialisationException.GetType().FullName, eventTitle);
-                    Log.Error(_log, errorMessage, deserialisationException);
+                    var errorMessage = string.Format("{0} thrown whilst handling error from event {1}",
+                        errorHandlingException.GetType().FullName, eventTitle);
+                    Log.Error(_log, errorMessage, errorHandlingException);
                 }
             }
 
