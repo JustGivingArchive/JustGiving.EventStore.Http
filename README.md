@@ -16,7 +16,7 @@ FAQs
 **A**: We wanted a simple, testable way to talk with our EventStore cluster over HTTP, as well as subscribe to events in a cacheable manner.  We haven't found any other library, so we can give back to the ES community in our own little way
 
 **Q**: Do you advocate HTTP over raw TCP?<br />
-**A**: Each to their own; check out [the official line on it](https://github.com/eventstore/eventstore/wiki/Which-API).  We are using varnish which could be handy...
+**A**: Each to their own; check out [the official line on it](http://docs.geteventstore.com/introduction/which-api/).  We are using varnish which could be handy...
 
 **Q**: Do you have any nuget packages?<br />
 **A**: Yes:<br />
