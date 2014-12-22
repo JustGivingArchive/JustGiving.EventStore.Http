@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace JustGiving.EventStore.Http.SubscriberHost
 {
@@ -16,14 +17,21 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 return result;
             }
 
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            try
             {
-                var match = assembly.GetTypes().FirstOrDefault(x => x.FullName == fullName);
-                if (match != null)
+                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    cache[fullName] = match;
-                    return match;
+                    var match = assembly.GetTypes().FirstOrDefault(x => x.FullName == fullName);
+                    if (match != null)
+                    {
+                        cache[fullName] = match;
+                        return match;
+                    }
                 }
+            }
+            catch (ReflectionTypeLoadException)
+            {
+                return null;
             }
 
             cache[fullName] = null;
