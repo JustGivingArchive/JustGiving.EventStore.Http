@@ -11,6 +11,11 @@ namespace JustGiving.EventStore.Http.Client
         /// in log files.
         /// </summary>
         string ConnectionName { get; }
+        
+        /// <summary>
+        /// Gets the endpoint of this connection.
+        /// </summary>
+        string Endpoint { get; }
 
         /// <summary>
         /// Deletes a stream from the Event Store asynchronously

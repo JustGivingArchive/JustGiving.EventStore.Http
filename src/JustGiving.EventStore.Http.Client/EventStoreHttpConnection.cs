@@ -65,6 +65,8 @@ namespace JustGiving.EventStore.Http.Client
 
         public string ConnectionName { get { return _connectionName; } }
 
+        public string Endpoint { get { return _endpoint; } }
+
         public async Task DeleteStreamAsync(string stream, int expectedVersion)
         {
             await DeleteStreamAsync(stream, expectedVersion, false);
