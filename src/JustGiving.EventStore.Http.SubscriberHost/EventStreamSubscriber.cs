@@ -96,7 +96,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public async Task PollAsync(string stream, string subscriberId)
         {
-            Log.Info(_log, "{0}|{1}: Begin polling", stream, subscriberId ?? "default");
+            Log.Debug(_log, "{0}|{1}: Begin polling", stream, subscriberId ?? "default");
             lock (_synchroot)
             {
                 _subscriptionTimerManager.Pause(stream, subscriberId);//we want to be able to cane a stream if we are not up to date, without reading it twice
@@ -116,7 +116,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 _subscriptionTimerManager.Resume(stream, subscriberId);
             }
 
-            Log.Info(_log, "{0}|{1}: Finished polling", stream, subscriberId);
+            Log.Debug(_log, "{0}|{1}: Finished polling", stream, subscriberId);
         }
 
         public async Task PollAsyncInternal(string stream, string subscriberId)

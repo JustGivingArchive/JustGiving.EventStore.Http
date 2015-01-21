@@ -265,7 +265,7 @@ namespace JustGiving.EventStore.Http.Client
             using (var client = GetClient())
             {
                 var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count);
-                Log.Info(_log, "Reading forwards from {0}", url);
+                Log.Debug(_log, "Reading forwards from {0}", url);
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.eventstore.atom+json"));
                 if (longPollingTimeout.HasValue && longPollingTimeout.Value.TotalSeconds>=1)
