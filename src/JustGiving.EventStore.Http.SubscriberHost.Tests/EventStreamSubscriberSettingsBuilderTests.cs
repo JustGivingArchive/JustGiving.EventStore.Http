@@ -134,7 +134,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public void WithLongPollingTimeoutOf_ShouldStoreRequiredLongPOllingTimeout()
+        public void WithLongPollingTimeoutOf_ShouldStoreRequiredLongPollingTimeout()
         {
             var expected = TimeSpan.FromSeconds(123);
             _builder.WithLongPollingTimeoutOf(expected);
@@ -171,6 +171,22 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _builder.AddPerformanceMonitor(thirdExpected);
 
             ((EventStreamSubscriberSettings)_builder).PerformanceMonitors.Should().Contain(new[]{firstExpected, secondExpected, thirdExpected});
+        }
+
+        [Test]
+        public void WithEventNotFoundRetryCountOf_ShouldStoreEventNotFoundRetryCount()
+        {
+            var expected = 123;
+            _builder.WithEventNotFoundRetryCountOf(expected);
+            ((EventStreamSubscriberSettings)_builder).EventNotFoundRetryCount.Should().Be(expected);
+        }
+
+        [Test]
+        public void WithEventNotFoundRetryDelayOf_ShouldStoreEventNotFoundRetryDelay()
+        {
+            var expected = TimeSpan.FromSeconds(123);
+            _builder.WithEventNotFoundRetryDelayOf(expected);
+            ((EventStreamSubscriberSettings)_builder).EventNotFoundRetryDelay.Should().Be(expected);
         }
     }
 }

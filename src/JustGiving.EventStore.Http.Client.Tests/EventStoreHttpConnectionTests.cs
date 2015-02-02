@@ -294,7 +294,8 @@ namespace JustGiving.EventStore.Http.Client.Tests
             result.Should().BeNull();
         }
         
-        public void ReadEventBodyAsync_NotFoundStatusCodeShouldThrowException()
+        [Test]
+        public async void ReadEventBodyAsync_NotFoundStatusCodeShouldThrowException()
         {
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("") });
@@ -310,7 +311,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
 
         [TestCase(HttpStatusCode.InternalServerError)]
         [TestCase(HttpStatusCode.Forbidden)]
-        public void ReadEventBodyAsync_OtherInvalidStatusCodesShouldJustBlow(HttpStatusCode statusCode)
+        public async void ReadEventBodyAsync_OtherInvalidStatusCodesShouldJustBlow(HttpStatusCode statusCode)
         {
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                 .ReturnsAsync(new HttpResponseMessage(statusCode) { Content = new StringContent("") });
@@ -342,7 +343,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
-        public void TypedReadEventBodyAsync_ShouldReturnNullWhenNotFoundStatusCodeIsReturned()
+        public async void TypedReadEventBodyAsync_ShouldReturnNullWhenNotFoundStatusCodeIsReturned()
         {
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{Id:123}") });
@@ -367,7 +368,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
-        public void UntypedReadEventBodyAsync_ShouldReturnNullWhenNotFoundStatusCodeIsReturned()
+        public async void UntypedReadEventBodyAsync_ShouldReturnNullWhenNotFoundStatusCodeIsReturned()
         {
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{Id:123}") });

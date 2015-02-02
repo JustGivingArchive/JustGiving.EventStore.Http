@@ -27,6 +27,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly int _sliceSize;
         private readonly TimeSpan? _longPollingTimeout;
         private readonly IEnumerable<IEventStreamSubscriberPerformanceMonitor> _performanceMonitors;
+        private readonly int _eventNotFoundRetryCount;
+        private readonly TimeSpan _eventNotFoundRetryDelay;
        
         public IStreamSubscriberIntervalMonitor StreamSubscriberMonitor { get; private set; }
         public PerformanceStats AllEventsStats { get; private set; }
@@ -66,6 +68,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _performanceMonitors = settings.PerformanceMonitors;
             _log = settings.Log;
             
+            _eventNotFoundRetryCount = settings.EventNotFoundRetryCount;
+            _eventNotFoundRetryDelay = settings.EventNotFoundRetryDelay;
+
             StreamSubscriberMonitor = settings.SubscriberIntervalMonitor;
             AllEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
             ProcessedEventsStats = new PerformanceStats(settings.MessageProcessingStatsWindowPeriod, settings.MessageProcessingStatsWindowCount);
@@ -148,13 +153,17 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         {
                             /* If the event store is deployed as a cluster, it may be possible to get transient read failures.
                              * If an event could not be found on the event stream, try again. */
+
+
                             var attemptRetry = false;
-                            const int maxAttempts = 3; // Make configurable through config?
+                            var maxAttempts = Math.Max(_eventNotFoundRetryCount, 1);
 
                             for (var i = 0; i < maxAttempts && (i == 0 || attemptRetry); i++)
                             {
                                 if(i>0)
-                                    await Task.Delay(TimeSpan.FromMilliseconds(100 * i)); // Back off more each time? ToDo: Make configurable
+                                {
+                                    await Task.Delay(_eventNotFoundRetryDelay); // Back off more each time?
+                                }   
 
                                 Log.Debug(_log, "{0}|{1}: Processing event {2}. Attempt: {3}", stream, subscriberId ?? "default", message.Id, i+1);
 

@@ -8,7 +8,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 {
     public class EventStreamSubscriberSettings
     {
-        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount, TimeSpan? longPollingTimeout, IEnumerable<IEventStreamSubscriberPerformanceMonitor> performanceMonitors, IStreamSubscriberIntervalMonitor streamSubscriberIntervalMonitor)
+        internal EventStreamSubscriberSettings(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository, ISubscriptionTimerManager subscriptionTimerManager, IEventTypeResolver eventTypeResolver, TimeSpan pollingInterval, int sliceSize, ILog log, TimeSpan messageProcessingStatsWindowPeriod, int messageProcessingStatsWindowCount, TimeSpan? longPollingTimeout, IEnumerable<IEventStreamSubscriberPerformanceMonitor> performanceMonitors, IStreamSubscriberIntervalMonitor streamSubscriberIntervalMonitor, int eventNotFoundRetryCount, TimeSpan eventNotFoundRetryDelay)
         {
             Connection = connection;
             EventHandlerResolver = eventHandlerResolver;
@@ -23,6 +23,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             LongPollingTimeout = longPollingTimeout;
             PerformanceMonitors = performanceMonitors;
             SubscriberIntervalMonitor = streamSubscriberIntervalMonitor;
+            EventNotFoundRetryCount = eventNotFoundRetryCount;
+            EventNotFoundRetryDelay = eventNotFoundRetryDelay;
         }
 
         /// <summary>
@@ -49,5 +51,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public int SliceSize { get; private set; }
         public TimeSpan? LongPollingTimeout { get; private set; }
+
+        public int EventNotFoundRetryCount { get; private set; }
+        public TimeSpan EventNotFoundRetryDelay { get; private set; }
     }
 }

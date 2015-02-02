@@ -23,6 +23,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         private TimeSpan _defaultPollingInterval = TimeSpan.FromSeconds(30);
         private int _sliceSize = 100;
+        
+        private int _eventNotFoundRetryCount = 3;
+        private TimeSpan _eventNotFoundRetryDelay = TimeSpan.FromMilliseconds(100);
 
         public EventStreamSubscriberSettingsBuilder(IEventStoreHttpConnection connection, IEventHandlerResolver eventHandlerResolver, IStreamPositionRepository streamPositionRepository)
         {
@@ -93,9 +96,21 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             return this;
         }
 
+        public EventStreamSubscriberSettingsBuilder WithEventNotFoundRetryCountOf(int eventNotFoundRetryCount)
+        {
+            _eventNotFoundRetryCount = eventNotFoundRetryCount;
+            return this;
+        }
+
+        public EventStreamSubscriberSettingsBuilder WithEventNotFoundRetryDelayOf(TimeSpan eventNotFoundRetryDelay)
+        {
+            _eventNotFoundRetryDelay = eventNotFoundRetryDelay;
+            return this;
+        }
+
         public static implicit operator EventStreamSubscriberSettings(EventStreamSubscriberSettingsBuilder builder)
         {
-            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount, builder._longPollingTimeout, builder._performanceMonitors, builder._subscriberIntervalMonitor);
+            return new EventStreamSubscriberSettings(builder._connection, builder._eventHandlerResolver, builder._streamPositionRepository, builder._subscriptionTimerManager, builder._eventTypeResolver, builder._defaultPollingInterval, builder._sliceSize, builder._log, builder._messageProcessingStatsWindowPeriod, builder._messageProcessingStatsWindowCount, builder._longPollingTimeout, builder._performanceMonitors, builder._subscriberIntervalMonitor, builder._eventNotFoundRetryCount, builder._eventNotFoundRetryDelay);
         }
     }
 }
