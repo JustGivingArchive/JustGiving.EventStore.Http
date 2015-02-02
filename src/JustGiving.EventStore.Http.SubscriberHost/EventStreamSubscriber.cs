@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using JustGiving.EventStore.Http.Client;
 using JustGiving.EventStore.Http.Client.Common.Utils;
+using JustGiving.EventStore.Http.Client.Exceptions;
 using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 using log4net;
 
@@ -77,7 +78,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0}|{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
                 _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval, subscriberId));
-                Log.Info(_log, "Subscribed to {0}{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
+                Log.Info(_log, "Subscribed to {0}|{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
             }
         }
 
@@ -145,18 +146,44 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                         if (handlers.Any())
                         {
-                            Log.Debug(_log, "{0}|{1}: Processing event {2}", stream, subscriberId ?? "default", message.Id);
+                            /* If the event store is deployed as a cluster, it may be possible to get transient read failures.
+                             * If an event could not be found on the event stream, try again. */
+                            var attemptRetry = false;
+                            const int maxAttempts = 3; // Make configurable through config?
 
-                            try
+                            for (var i = 0; i < maxAttempts && (i == 0 || attemptRetry); i++)
                             {
-                                await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
-                                ProcessedEventsStats.MessageProcessed(stream);
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(_log, "{0}|{1}: Error invoking message handlers for message {2}: {3}", stream, subscriberId ?? "default", message.Id, ex);
-                            }
+                                if(i>0)
+                                    await Task.Delay(TimeSpan.FromMilliseconds(100 * i)); // Back off more each time? ToDo: Make configurable
 
+                                Log.Debug(_log, "{0}|{1}: Processing event {2}. Attempt: {3}", stream, subscriberId ?? "default", message.Id, i+1);
+
+                                try
+                                {
+                                    await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
+                                    ProcessedEventsStats.MessageProcessed(stream);
+                                }
+                                catch (EventNotFoundException ex)
+                                {
+                                    // If the event could not be found but we have at least one retry attempt left, log it as a warning and allow a retry.
+                                    if (i < maxAttempts - 1)
+                                    {
+                                        Log.Warning(_log, "{0}|{1}: Event could not be found. Attempting to process the event again. {2}: {3}",
+                                            stream, subscriberId ?? "default", message.Id, ex.Message);
+                                        attemptRetry = true;
+                                    }
+                                    else
+                                    {
+                                        // The event could not be found after the allowed number of retries. Log it as an error.
+                                        Log.Error(_log, "{0}|{1}: Event could not be found after {2} attempts. {3}: {4}", stream, subscriberId ?? "default", i+1, message.Id, ex.Message);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error(_log, "{0}|{1}: Error invoking message handlers for message {2}: {3}", stream, subscriberId ?? "default", message.Id, ex);
+                                }
+                            }
+                            
                             Log.Debug(_log, "{0}|{1}: Exception event {2}", stream, subscriberId ?? "default", message.Id);
                         }
                         else

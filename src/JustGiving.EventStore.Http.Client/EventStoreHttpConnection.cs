@@ -192,7 +192,7 @@ namespace JustGiving.EventStore.Http.Client
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     Log.Warning(_log, "Read Event:Not Found {0}", url);
-                    return null;
+                    throw new EventNotFoundException(url, result.StatusCode, result.Content.ToString());
                 }
 
                 if (result.StatusCode == HttpStatusCode.Gone)
@@ -257,7 +257,11 @@ namespace JustGiving.EventStore.Http.Client
         public async Task<object> ReadEventBodyAsync(Type eventType, string url)
         {
             var intermediary = await ReadEventBodyAsync(url);
-            return intermediary.ToObject(eventType);
+            if (intermediary == null)
+            {
+                return null;
+            }
+            return intermediary.ToObject(eventType);                                                                                                                                                                                                                                                                 
         }
 
         public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout)

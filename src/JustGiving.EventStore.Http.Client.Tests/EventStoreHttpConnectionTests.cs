@@ -284,7 +284,6 @@ namespace JustGiving.EventStore.Http.Client.Tests
             });
         }
 
-        [TestCase(HttpStatusCode.NotFound)]
         [TestCase(HttpStatusCode.Gone)]
         public async void ReadEventBodyAsync_SomeInvalidStatusCodesShouldReturnNull(HttpStatusCode statusCode)
         {
@@ -294,10 +293,24 @@ namespace JustGiving.EventStore.Http.Client.Tests
             var result = await _connection.ReadEventBodyAsync(It.IsAny<string>(), It.IsAny<int>());
             result.Should().BeNull();
         }
+        
+        public void ReadEventBodyAsync_NotFoundStatusCodeShouldThrowException()
+        {
+            _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("") });
+
+            var ex =
+                    Assert.Throws<EventNotFoundException>(
+                        async () =>
+                            await _connection.ReadEventBodyAsync(typeof(SomeClass), It.IsAny<string>(), It.IsAny<int>()));
+
+            Assert.IsTrue(ex.Message.StartsWith("Event not found. Url: http://"));
+            Assert.AreEqual(HttpStatusCode.NotFound, ex.HttpStatusCode);
+        }
 
         [TestCase(HttpStatusCode.InternalServerError)]
         [TestCase(HttpStatusCode.Forbidden)]
-        public async void ReadEventBodyAsync_OtherInvalidStatusCodesShouldJustBlow(HttpStatusCode statusCode)
+        public void ReadEventBodyAsync_OtherInvalidStatusCodesShouldJustBlow(HttpStatusCode statusCode)
         {
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                 .ReturnsAsync(new HttpResponseMessage(statusCode) { Content = new StringContent("") });
@@ -329,13 +342,18 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
-        public async void TypedReadEventBodyAsync_ShouldReturnNullWhenAnInvalidStatusCodeIsReturned()
+        public void TypedReadEventBodyAsync_ShouldReturnNullWhenNotFoundStatusCodeIsReturned()
         {
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{Id:123}") });
 
-            var result = await _connection.ReadEventBodyAsync<SomeClass>(It.IsAny<string>(), It.IsAny<int>());
-            result.Should().BeNull();
+            var ex =
+                Assert.Throws<EventNotFoundException>(
+                    async () =>
+                        await _connection.ReadEventBodyAsync(typeof(SomeClass), It.IsAny<string>(), It.IsAny<int>()));
+
+            Assert.IsTrue(ex.Message.StartsWith("Event not found. Url: http://"));
+            Assert.AreEqual(HttpStatusCode.NotFound, ex.HttpStatusCode);
         }
 
         [Test]
@@ -349,13 +367,18 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
-        public async void UntypedReadEventBodyAsync_ShouldReturnNullWhenAnInvalidStatusCodeIsReturned()
+        public void UntypedReadEventBodyAsync_ShouldReturnNullWhenNotFoundStatusCodeIsReturned()
         {
             _httpClientProxyMock.Setup(x => x.SendAsync(It.IsAny<HttpClient>(), It.IsAny<HttpRequestMessage>()))
                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{Id:123}") });
 
-            var result = await _connection.ReadEventBodyAsync(typeof(SomeClass), It.IsAny<string>(), It.IsAny<int>());
-            result.Should().BeNull();
+            var ex =
+                Assert.Throws<EventNotFoundException>(
+                    async () =>
+                        await _connection.ReadEventBodyAsync(typeof (SomeClass), It.IsAny<string>(), It.IsAny<int>()));
+
+            Assert.IsTrue(ex.Message.StartsWith("Event not found. Url: http://"));
+            Assert.AreEqual(HttpStatusCode.NotFound, ex.HttpStatusCode);
         }
 
         [Test]

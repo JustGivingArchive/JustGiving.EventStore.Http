@@ -60,6 +60,7 @@
     <Compile Include="Common\Utils\Log.cs" />
     <Compile Include="ConnectionSettingsBuilder.cs" />
     <Compile Include="ConnectionSettings.cs" />
+    <Compile Include="Exceptions\EventNotFoundException.cs" />
     <Compile Include="HttpClientProxy.cs" />
     <Compile Include="IHttpClientProxy.cs" />
     <Compile Include="NewEventData.cs" />
