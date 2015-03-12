@@ -21,6 +21,9 @@
         <dependency id="log4net" />
       </group>
     </dependencies>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.ComponentModel.DataAnnotations" />
+    </frameworkAssemblies>
   </metadata>
   <files>
     <file src="**\*.cs" target="src" />

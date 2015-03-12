@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 
@@ -21,7 +22,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    var match = assembly.GetTypes().FirstOrDefault(x => x.FullName == eventType || x.GetCustomAttributes<BindsToAttribute>().Any(a=>a.EventType==eventType));
+                    var match = assembly.GetTypes().FirstOrDefault(x => x.FullName == eventType || 
+                                                                        x.GetCustomAttributes<BindsToAttribute>().Any(bta=>bta.EventType==eventType) || 
+                                                                        x.GetCustomAttributes<DefaultEventAttribute>().Any(dea=>dea.Name==eventType));
                     if (match != null)
                     {
                         cache[eventType] = match;

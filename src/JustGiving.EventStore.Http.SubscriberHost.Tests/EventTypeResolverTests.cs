@@ -1,4 +1,5 @@
-using System.Security.Cryptography.X509Certificates;
+using System.ComponentModel;
+using System.Reflection;
 using FluentAssertions;
 using JustGiving.EventStore.Http.SubscriberHost;
 using NUnit.Framework;
@@ -30,6 +31,13 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
+        public void WhenReferencingAType_AndTypeIsNotInAppDomainButADefaultEventMappedTypeExists_ReturnTheMappedType()
+        {
+            var result = new EventTypeResolver().Resolve("Some Default Event Type");
+            result.Should().Be<SomeDefaultEventBoundType>();
+        }
+
+        [Test]
         public void WhenReferencingAType_AndMappedTypeExistsWithMultipleMappings_ReturnTheMappedType()
         {
             var result1 = new EventTypeResolver().Resolve("Some multi bound type 1");
@@ -50,6 +58,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [BindsTo("Some multi bound type 2")]
         [BindsTo("Some multi bound type 3")]
         private class SomeMultiBoundType { }
+
+        [DefaultEvent("Some Default Event Type")]
+        private class SomeDefaultEventBoundType { }
     }
 
     

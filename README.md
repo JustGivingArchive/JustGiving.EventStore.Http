@@ -88,16 +88,25 @@ namespace SomeApp.Events
 ```
 
 **Q**: What can I do if my events don't match my .Net Event Types?<br />
-**A**: The Subscriber (as of 12/Mar/2015) allows you to bind .Net classes to arbitrary events using a custom attribute.  You can bind multiple ES events to the same .Net Type by decorating it with multiple attributes
+**A**: The Subscriber (as of 12/Mar/2015) allows you to bind .Net classes to arbitrary events using one of two custom-binding attributes, show below.  The first requires a reference to System.ComponentModel.DataAnnotations only, and allows your Type to be bound to one ES event.  The second allows for multiple binding, but requires your DTO reference the SubscriberHost assembly.
 
 ```csharp
-[BindsTo("MyDomain:PasswordUpdated-V3")]
+[System.ComponentModel.DefaultEvent("MyDomain:PasswordUpdated-V3")]
 public class UserChangedPassword
 {
     public void UserId{ get; set; }
     public DateTime DateChanged{ get; set; }
 }
+```
 
+```csharp
+[BindsTo("MyDomain:PasswordUpdated-V1")]
+[BindsTo("MyDomain:PasswordUpdated-V2")]
+public class UserChangedPassword
+{
+    public void UserId{ get; set; }
+    public DateTime DateChanged{ get; set; }
+}
 ```
 
 **Q**: What do I need to do to get the subscriber running?<br />
