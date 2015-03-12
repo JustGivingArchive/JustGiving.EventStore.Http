@@ -9,10 +9,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
     {
         private Dictionary<string, Type> cache = new Dictionary<string,Type>();
 
-        public Type Resolve(string fullName)
+        public Type Resolve(string eventType)
         {
             Type result;
-            if (cache.TryGetValue(fullName, out result))
+            if (cache.TryGetValue(eventType, out result))
             {
                 return result;
             }
@@ -21,10 +21,10 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    var match = assembly.GetTypes().FirstOrDefault(x => x.FullName == fullName);
+                    var match = assembly.GetTypes().FirstOrDefault(x => x.FullName == eventType || x.GetCustomAttributes<BindsToAttribute>().Any(a=>a.EventType==eventType));
                     if (match != null)
                     {
-                        cache[fullName] = match;
+                        cache[eventType] = match;
                         return match;
                     }
                 }
@@ -34,7 +34,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 return null;
             }
 
-            cache[fullName] = null;
+            cache[eventType] = null;
             return null;
         }
     }

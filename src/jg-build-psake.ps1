@@ -2,7 +2,7 @@
   $Build_Artifacts = 'output'
   $pwd = pwd
   $msbuild = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
-  $nunit =  "$pwd\packages\NUnit.Runners.2.6.3\tools\nunit-console-x86.exe"
+  $nunit =  "$pwd\packages\NUnit.Runners.2.6.4\tools\nunit-console-x86.exe"
   $TestOutput = "$pwd\BuildOutput"
   $UnitTestOutputFolder = "$TestOutput\UnitTestOutput";
   $Company = "JustGiving";
