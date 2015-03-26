@@ -125,7 +125,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             Log.Debug(_log, "{0}|{1}: Finished polling", stream, subscriberId);
         }
 
-        public async Task PollAsyncInternal(string stream, string subscriberId)
+        private async Task PollAsyncInternal(string stream, string subscriberId)
         {
             var runAgain = false;
             do
@@ -206,18 +206,18 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                         Log.Debug(_log, "{0}|{1}: Storing last read event  as {2}", stream, subscriberId ?? "default", message.SequenceNumber);
                         await _streamPositionRepository.SetPositionForAsync(stream, subscriberId, message.SequenceNumber);
+
+                        if (!IsSubscribed(subscriberId))
+                        {
+                            Log.Debug(_log, "{0}|{1}: subscriber unsubscribed.", stream, subscriberId ?? "default");
+                            break;
+                        }
                     }
 
-                    runAgain = processingBatch.Entries.Any();
+                    runAgain = processingBatch.Entries.Any() && IsSubscribed(subscriberId);
                     if (runAgain)
                     {
                         Log.Debug(_log, "{0}|{1}: New items were found; repolling", stream, subscriberId ?? "default");
-                    }
-
-                    if (!_subscriptionTimerManager.GetSubscriptions().Any())
-                    {
-                        Log.Debug(_log, "{0}|{1}: no more subscribers.", stream, subscriberId ?? "default");
-                        runAgain = false;
                     }
                 }
                 else
@@ -225,6 +225,14 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     runAgain = false;
                 }
             } while (runAgain);
+        }
+
+        private bool IsSubscribed(string subscriberId)
+        {
+            lock (_synchroot)
+            {
+                return _subscriptionTimerManager.GetSubscriptions().Any(x => x.SubscriberId == subscriberId);
+            }
         }
 
         public IEnumerable<object> GetEventHandlersFor(string eventTypeName, string subscriberId)
@@ -267,7 +275,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                                        .Any(att => att.SupportedSubscriberId == subscriberId));
         }
 
-        public async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
+        private async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
         {
             var @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink);
             await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo);
@@ -355,7 +363,12 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public IEnumerable<StreamSubscription> GetSubscriptions()
         {
-            return _subscriptionTimerManager.GetSubscriptions();
+            lock (_synchroot)
+            {
+                return _subscriptionTimerManager.GetSubscriptions()
+                    .ToList()
+                    .AsReadOnly();
+            }
         }
     }
 }

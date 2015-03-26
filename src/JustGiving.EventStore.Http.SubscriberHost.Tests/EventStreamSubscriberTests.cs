@@ -169,6 +169,52 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
+        public async Task PollAsync_IfUnsubscribed_ShouldNotRepoll()
+        {
+            var count = 0;
+            var streamSliceResult = new StreamEventsSlice
+            {
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream" } }
+            };
+
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
+                () =>
+                {
+                    if (count++ == 2)
+                    {
+                        streamSliceResult.Entries.Clear();
+                    }
+                });
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+
+            await _subscriber.PollAsync(StreamName, SubscriberId);
+
+            _eventTypeResolverMock.Verify(r => r.Resolve(It.IsAny<string>()), Times.Once);
+        }
+
+        [Test]
+        public async Task PollAsync_IfUnsubscribed_ShouldStopProcessingBatch()
+        {
+            var streamSliceResult = new StreamEventsSlice
+            {
+                Entries = new List<BasicEventInfo> {
+                    new BasicEventInfo { Title = "1@Stream" },
+                    new BasicEventInfo { Title = "2@Stream" },
+                    new BasicEventInfo { Title = "3@Stream" }
+                }
+            };
+
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult);
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+
+            await _subscriber.PollAsync(StreamName, SubscriberId);
+
+            _eventTypeResolverMock.Verify(r => r.Resolve(It.IsAny<string>()), Times.Once);
+        }
+
+        [Test]
         public async Task PollAsync_IfUnsuccessful_ShouldNotTryToProcessResults()
         {
             var result = new StreamEventsSlice
