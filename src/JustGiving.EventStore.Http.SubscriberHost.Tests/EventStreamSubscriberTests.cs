@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using JustGiving.EventStore.Http.Client;
+using JustGiving.EventStore.Http.Client.Exceptions;
 using JustGiving.EventStore.Http.SubscriberHost;
 using JustGiving.EventStore.Http.SubscriberHost.Monitoring;
 using Moq;
@@ -28,6 +29,8 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         private static readonly DateTime EventDate = new DateTime(1, 2, 3);
         private static readonly BasicEventInfo EventInfo = new BasicEventInfo { Title = "1@2" , Updated = EventDate};
 
+        private const int EventNotFoundRetryCount = 10;
+
         [SetUp]
         public void Setup()
         {
@@ -38,7 +41,14 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             _eventTypeResolverMock = new Mock<IEventTypeResolver>();
             _streamSubscriberIntervalMonitorMock = new Mock<IStreamSubscriberIntervalMonitor>();
 
-            var builder = new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object, _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object).WithCustomEventTypeResolver(_eventTypeResolverMock.Object).WithCustomSubscriptionTimerManager(_subscriptionTimerManagerMock.Object).WithCustomEventStreamSubscriberIntervalMonitor(_streamSubscriberIntervalMonitorMock.Object);
+            var builder =
+                new EventStreamSubscriberSettingsBuilder(_eventStoreHttpConnectionMock.Object,
+                    _eventHandlerResolverMock.Object, _streamPositionRepositoryMock.Object)
+                    .WithCustomEventTypeResolver(_eventTypeResolverMock.Object)
+                    .WithCustomSubscriptionTimerManager(_subscriptionTimerManagerMock.Object)
+                    .WithCustomEventStreamSubscriberIntervalMonitor(_streamSubscriberIntervalMonitorMock.Object)
+                    .WithEventNotFoundRetryCountOf(EventNotFoundRetryCount);
+
             _subscriber = (EventStreamSubscriber)EventStreamSubscriber.Create(builder);
         }
 
@@ -152,6 +162,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                 Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream" } }//Reflection ahoy
             };
 
+
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
                 () =>
@@ -166,6 +177,75 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName, SubscriberId), Times.Once);
             _subscriptionTimerManagerMock.Verify(x => x.Resume(StreamName, SubscriberId), Times.Once);
+        }
+
+        [Test]
+        public async Task PollAsync_IfEventBodyNotFound_ShouldKeepRetryingUntilItsFound()
+        {
+            var count = 0;
+            var streamSliceResult = new StreamEventsSlice
+            {
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", Links = new List<Link> { new Link { Relation = "edit" } }} }
+            };
+
+
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
+                () =>
+                {
+                    if (count++ == 3000)
+                    {
+                        streamSliceResult.Entries.Clear();
+                    }
+                });
+
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+
+            _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(It.IsAny<Type>())).Returns(new List<object> { new SomeImplicitHandler() });
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
+
+            _eventStoreHttpConnectionMock.SetupSequence(x => x.ReadEventBodyAsync(It.IsAny<Type>(), It.IsAny<string>()))
+                .Throws(new EventNotFoundException(""))
+                .Throws(new EventNotFoundException(""))
+                .Throws(new EventNotFoundException(""))
+                .Returns(Task.FromResult((object)new EventANoBaseOrInterface()));
+
+            await _subscriber.PollAsync(StreamName, null);
+
+            _eventStoreHttpConnectionMock.Verify(x => x.ReadEventBodyAsync(It.IsAny<Type>(), It.IsAny<string>()), Times.Exactly(4));
+        }
+
+        [Test]
+        public async Task PollAsync_IfEventBodyNotFound_ShouldStopRetryingWhenItReachesMaxRetryCount()
+        {
+            var count = 0;
+            var streamSliceResult = new StreamEventsSlice
+            {
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", Links = new List<Link> { new Link { Relation = "edit" } } } }
+            };
+
+
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult).Callback(
+                () =>
+                {
+                    if (count++ == 3000)
+                    {
+                        streamSliceResult.Entries.Clear();
+                    }
+                });
+
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+
+            _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(It.IsAny<Type>())).Returns(new List<object> { new SomeImplicitHandler() });
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
+
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventBodyAsync(It.IsAny<Type>(), It.IsAny<string>()))
+                .Throws(new EventNotFoundException(""));
+
+            await _subscriber.PollAsync(StreamName, null);
+
+            _eventStoreHttpConnectionMock.Verify(x => x.ReadEventBodyAsync(It.IsAny<Type>(), It.IsAny<string>()), Times.Exactly(EventNotFoundRetryCount));
         }
 
         [Test]

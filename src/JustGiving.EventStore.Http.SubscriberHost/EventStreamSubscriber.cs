@@ -171,6 +171,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                                 {
                                     await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
                                     ProcessedEventsStats.MessageProcessed(stream);
+                                    attemptRetry = false;
                                 }
                                 catch (EventNotFoundException ex)
                                 {
