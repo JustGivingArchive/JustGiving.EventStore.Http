@@ -5,13 +5,13 @@ using NUnit.Framework;
 
 namespace JustGiving.EventStore.Http.Client.Tests
 {
-    [TestFixture]
+    //[TestFixture]
     public class TestHarness
     {
         private const string StreamName = "JonsDonations";
         private IEventStoreHttpConnection _connection;
 
-        [SetUp]
+        //[SetUp]
         public void Setup()
         {
             _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, "http://127.0.0.1:2113");

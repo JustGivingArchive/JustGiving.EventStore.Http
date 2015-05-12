@@ -25,6 +25,15 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
+        public void WhenCreating_ShouldSetMetadataCorrectly()
+        {
+            var metadata = new { Id = 123, Foo = "bar" };
+
+            var eventData = NewEventData.Create("something", metadata);
+            eventData.Metadata.Should().Be(metadata);
+        }
+
+        [Test]
         public void WhenCreatingWithoutSpecifyingEventId_ShouldCreateAnEventId()
         {
             var expectedData = new{ Id = 123, Foo = "bar" };

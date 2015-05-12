@@ -22,17 +22,23 @@ namespace JustGiving.EventStore.Http.Client
         public readonly object Data;
 
         /// <summary>
+        /// Message metadata
+        /// </summary>
+        public readonly object Metadata;
+
+        /// <summary>
         /// Constructs a new <see cref="NewEventData" />.
         /// </summary>
         /// <param name="eventId">The ID of the event, used as part of the idempotent write check.</param>
         /// <param name="eventType">The name of the event type. It is strongly recommended that these
         /// use lowerCamelCase if projections are to be used.</param>
         /// <param name="data">The raw bytes of the event data.</param>
-        private NewEventData(Guid eventId, string eventType, object data)
+        private NewEventData(Guid eventId, string eventType, object data, object metadata)
         {
             EventId = eventId;
             EventType = eventType;
             Data = data;
+            Metadata = metadata;
         }
 
         public static NewEventData Create<T>(T data)
@@ -40,9 +46,14 @@ namespace JustGiving.EventStore.Http.Client
             return Create(Guid.NewGuid(), data);
         }
 
-        public static NewEventData Create<T>(Guid eventId, T data)
+        public static NewEventData Create<T>(T data, object metadata)
         {
-            return new NewEventData(eventId, typeof(T).FullName, data);
+            return Create(Guid.NewGuid(), data, metadata);
+        }
+
+        public static NewEventData Create<T>(Guid eventId, T data, object metadata = null)
+        {
+            return new NewEventData(eventId, typeof(T).FullName, data, metadata);
         }
     }
 }

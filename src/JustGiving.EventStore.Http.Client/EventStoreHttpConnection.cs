@@ -97,7 +97,12 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task AppendToStreamAsync<T>(string stream, params T[] events)
         {
-            await AppendToStreamAsync(stream, ExpectedVersion.Any, events.Select(NewEventData.Create).ToArray());
+            await AppendToStreamAsync(stream, ExpectedVersion.Any, events.Select(x => NewEventData.Create(x)).ToArray());
+        }
+
+        public async Task AppendToStreamAsync<T>(string stream, object metadata, T @event)
+        {
+            await AppendToStreamAsync(stream, ExpectedVersion.Any, NewEventData.Create(@event, metadata));
         }
 
         public async Task AppendToStreamAsync(string stream, params NewEventData[] events)
