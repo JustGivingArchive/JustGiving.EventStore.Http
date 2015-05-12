@@ -20,7 +20,7 @@ namespace JustGiving.EventStore.Http.Client
         private readonly ILog _log;
         private readonly string _endpoint;
         private readonly string _connectionName;
-        private Action<IEventStoreHttpConnection, Exception> _errorHandler;
+        private readonly Action<IEventStoreHttpConnection, Exception> _errorHandler;
 
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
@@ -289,7 +289,7 @@ namespace JustGiving.EventStore.Http.Client
 
                     if (result.StatusCode == HttpStatusCode.Gone)
                     {
-                        Log.Warning(_log, "Event slice not gone: {0}", url);
+                        Log.Warning(_log, "Event slice gone: {0}", url);
                         return StreamEventsSlice.StreamDeleted();
                     }
 
