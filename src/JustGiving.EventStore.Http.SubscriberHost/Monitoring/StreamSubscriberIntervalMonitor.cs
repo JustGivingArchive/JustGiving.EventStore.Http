@@ -7,19 +7,23 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
 {
     public class StreamSubscriberIntervalMonitor : ConcurrentDictionary<string, StreamIntervalTick>, IStreamSubscriberIntervalMonitor
     {
+        // this is "purposly" left hidden out of the consumer, is up to this app to decide what delayend subscriber means 
+        private const int StreamConsideredFallBehindTickCount = 5;
+
         public bool IsAnyStreamBehind()
         {
             var now = DateTime.Now;
-            if (Values.Any(value => IsStreamSubscriberBehind(now, value)))
+            if (Values.Any(value => IsStreamSubscriberBehind(now, value, StreamConsideredFallBehindTickCount)))
             {
                 return true;
             }
             return false;
         }
 
-        private static bool IsStreamSubscriberBehind(DateTime now, StreamIntervalTick tick)
+        private static bool IsStreamSubscriberBehind(DateTime now, StreamIntervalTick tick, int failIntervalThresh)
         {
-            return now.AddSeconds(-tick.Interval.TotalSeconds * 2) > tick.LastTick;
+            // if we miss {failIntervalThresh}  * tick intervals we should start getting worried
+            return now.AddSeconds(-tick.Interval.TotalSeconds * failIntervalThresh) > tick.LastTick;
         }
 
         public IEnumerable<StreamSubscriberIntervalStats> GetStreamsIntervalStats()
@@ -28,7 +32,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
             {
                 StreamName = SubscriberDetailsFromKey(item.Key).Item1,
                 SubscriberId = SubscriberDetailsFromKey(item.Key).Item2,
-                IsStreamBehind = IsStreamSubscriberBehind(DateTime.Now, item.Value)
+                IsStreamBehind = IsStreamSubscriberBehind(DateTime.Now, item.Value, StreamConsideredFallBehindTickCount)
             }).ToList();
         }
 
@@ -56,7 +60,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
                 {
                     StreamName = stream,
                     SubscriberId = subscriberId,
-                    IsStreamBehind = IsStreamSubscriberBehind(DateTime.Now, streamTick)
+                    IsStreamBehind = IsStreamSubscriberBehind(DateTime.Now, streamTick, StreamConsideredFallBehindTickCount)
                 };
             }
             catch (KeyNotFoundException)
@@ -65,12 +69,18 @@ namespace JustGiving.EventStore.Http.SubscriberHost.Monitoring
             }
         }
 
+        /// <summary>
+        /// Returns false if the subscriber falls 5 ticks behind
+        /// </summary>
+        /// <param name="stream">name of the stream</param>
+        /// <param name="subscriberId">subscriber id</param>
+        /// <returns></returns>
         public bool? IsStreamBehind(string stream, string subscriberId)
         {
             try
             {
                 var streamTick = this[TimerKeyFor(stream, subscriberId)];
-                return IsStreamSubscriberBehind(DateTime.Now, streamTick);
+                return IsStreamSubscriberBehind(DateTime.Now, streamTick, StreamConsideredFallBehindTickCount);
             }
             catch (KeyNotFoundException)
             {
