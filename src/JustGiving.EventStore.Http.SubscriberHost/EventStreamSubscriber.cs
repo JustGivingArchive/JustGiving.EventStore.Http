@@ -151,61 +151,18 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                         if (handlers.Any())
                         {
-                            /* If the event store is deployed as a cluster, it may be possible to get transient read failures.
-                             * If an event could not be found on the event stream, try again. */
-
-
-                            var attemptRetry = false;
-                            var maxAttempts = Math.Max(_eventNotFoundRetryCount, 1);
-
-                            for (var i = 0; i < maxAttempts && (i == 0 || attemptRetry); i++)
-                            {
-                                if(i>0)
-                                {
-                                    await Task.Delay(_eventNotFoundRetryDelay); // Back off more each time?
-                                }   
-
-                                Log.Debug(_log, "{0}|{1}: Processing event {2}. Attempt: {3}", stream, subscriberId ?? "default", message.Id, i+1);
-
-                                try
-                                {
-                                    await InvokeMessageHandlersForStreamMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message);
-                                    ProcessedEventsStats.MessageProcessed(stream);
-                                    attemptRetry = false;
-                                }
-                                catch (EventNotFoundException ex)
-                                {
-                                    // If the event could not be found but we have at least one retry attempt left, log it as a warning and allow a retry.
-                                    if (i < maxAttempts - 1)
-                                    {
-                                        Log.Warning(_log, "{0}|{1}: Event could not be found. Attempting to process the event again. {2}: {3}",
-                                            stream, subscriberId ?? "default", message.Id, ex.Message);
-                                        attemptRetry = true;
-                                    }
-                                    else
-                                    {
-                                        // The event could not be found after the allowed number of retries. Log it as an error.
-                                        Log.Error(_log, "{0}|{1}: Event could not be found after {2} attempts. {3}: {4}", stream, subscriberId ?? "default", i+1, message.Id, ex.Message);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Error(_log, "{0}|{1}: Error invoking message handlers for message {2}: {3}", stream, subscriberId ?? "default", message.Id, ex);
-                                }
-                            }
-                            
-                            Log.Debug(_log, "{0}|{1}: Exception event {2}", stream, subscriberId ?? "default", message.Id);
+                            await ProcessSingleMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message, subscriberId);
+                            ProcessedEventsStats.MessageProcessed(stream);
                         }
                         else
                         {
                             _performanceMonitors.AsParallel()
-                                .ForAll(
-                                    x =>
-                                        x.Accept(stream, message.Summary, message.Updated, 0,
-                                            Enumerable.Empty<KeyValuePair<Type, Exception>>()));
+                                                .ForAll(
+                                                    x => x.Accept(stream, message.Summary, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>())
+                                                    );
                         }
 
-                        Log.Debug(_log, "{0}|{1}: Storing last read event  as {2}", stream, subscriberId ?? "default", message.SequenceNumber);
+                        Log.Debug(_log, "{0}|{1}: Storing last read event as {2}", stream, subscriberId ?? "default", message.SequenceNumber);
                         await _streamPositionRepository.SetPositionForAsync(stream, subscriberId, message.SequenceNumber);
 
                         if (!IsSubscribed(subscriberId))
@@ -276,10 +233,59 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                                        .Any(att => att.SupportedSubscriberId == subscriberId));
         }
 
-        private async Task InvokeMessageHandlersForStreamMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo)
+        /// <remarks>
+        /// If the event store is deployed as a cluster, it may be possible to get transient read failures.
+        /// If an event could not be found on the event stream, try again.
+        ///</remarks>
+        private async Task ProcessSingleMessageAsync(string stream, Type eventType, IEnumerable handlers, BasicEventInfo eventInfo, string subscriberId)
         {
-            var @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink);
-            await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo);
+            var maxAttempts = Math.Max(_eventNotFoundRetryCount, 1);
+
+            object @event = null;
+            for (var i = 0; i < maxAttempts; i++)
+            {
+                if (i > 0)
+                {
+                    await Task.Delay(_eventNotFoundRetryDelay);
+                }   
+
+                try
+                {
+                    Log.Debug(_log, "{0}|{1}: Processing event {2}. Attempt: {3}", stream, subscriberId ?? "default", eventInfo.Id, i + 1);
+
+                    @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink);
+                    if (@event != null)
+                    {
+                        break;
+                    }
+                }
+                catch (EventNotFoundException ex)
+                {
+                    if (i < maxAttempts - 1)
+                    {
+                        Log.Warning(_log, "{0}|{1}: Event could not be found. Attempting to process the event again. {2}: {3}", stream, subscriberId ?? "default", eventInfo.Id, ex.Message);
+                    }
+                    else
+                    {
+                        Log.Error(_log, "{0}|{1}: Event could not be found after {2} attempts. {3}: {4}", stream, subscriberId ?? "default", i + 1, eventInfo.Id, ex.Message);
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(_log, "{0}|{1}: Error getting message {2}: {3}", stream, subscriberId ?? "default", eventInfo.Id, ex);
+                    return;
+                }
+            }
+
+            try
+            {
+                await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(_log, "{0}|{1}: Error invoking message handlers for message {2}: {3}", stream, subscriberId ?? "default", eventInfo.Id, ex);
+            }
         }
 
         public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, object @event, BasicEventInfo eventInfo)
