@@ -308,7 +308,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public async void PollAsync_ShouldStoreStreamPositionAfterHandlersInvoked_EvenIfNoneWereFound()
+        public async Task PollAsync_ShouldStoreStreamPositionAfterHandlersInvoked_EvenIfNoneWereFound()
         {
             var streamSliceResult = new StreamEventsSlice
             {
@@ -392,7 +392,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlers()
+        public async Task InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlers()
         {
             var @implicit = new SomeImplicitHandler();
             var implicitForParentType = new SomeImplicitHandlerForParentType();
@@ -415,7 +415,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlersForInterfaceType()
+        public async Task InvokeMessageHandlersForEventMessageAsync_ShouldInvokeFoundHandlersForInterfaceType()
         {
             var @implicit = new SomeImplicitHandlerForInterface();
             var @explicit = new SomeExplicitHandlerForInterface();
@@ -431,7 +431,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public async void PollAsync_WhenNoEventHandlersFound_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateInfo()
+        public async Task PollAsync_WhenNoEventHandlersFound_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateInfo()
         {
             var performanceMonitor = new Mock<IEventStreamSubscriberPerformanceMonitor>();
 
@@ -459,7 +459,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateInfo()
+        public async Task InvokeMessageHandlersForEventMessageAsync_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateInfo()
         {
             var performanceMonitor1 = new Mock<IEventStreamSubscriberPerformanceMonitor>();
             var performanceMonitor2 = new Mock<IEventStreamSubscriberPerformanceMonitor>();
@@ -476,7 +476,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateErrorInfoWhenAHandlerBlows()
+        public async Task InvokeMessageHandlersForEventMessageAsync_ShouldInvokeAllRegisteredPerformanceMonitorsWithAppropriateErrorInfoWhenAHandlerBlows()
         {
             var performanceMonitor = new Mock<IEventStreamSubscriberPerformanceMonitor>();
 
@@ -514,7 +514,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [TestCase(typeof(EventCWithBaseAndInterface), "object")]
         [TestCase(typeof(EventDWithBaseWhichHasInterface), "object")]
         [TestCase(typeof(EventEWithBaseWhichHasInterface), "EventEWithBaseWhichHasInterface")]   
-        public async void InvokeMessageHandlersForEventMessageAsync_ShouldInvokeCorrectHandlerOverloadForType(Type eventType, string expectedMethod)
+        public async Task InvokeMessageHandlersForEventMessageAsync_ShouldInvokeCorrectHandlerOverloadForType(Type eventType, string expectedMethod)
         {
             var @implicit = new MultiTypeImplicitHandler();
             var @explicit = new MultiTypeExplicitHandler();
