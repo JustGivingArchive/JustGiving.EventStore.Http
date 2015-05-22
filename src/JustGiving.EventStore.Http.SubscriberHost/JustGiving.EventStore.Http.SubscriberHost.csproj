@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdHocInvocationResult.cs" />
     <Compile Include="EventStreamSubscriberSettings.cs" />
     <Compile Include="EventStreamSubscriberSettingsBuilder.cs" />
     <Compile Include="EventTypeResolver.cs" />

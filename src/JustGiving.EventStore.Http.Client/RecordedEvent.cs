@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json.Linq;
 
 namespace JustGiving.EventStore.Http.Client
@@ -17,6 +18,16 @@ namespace JustGiving.EventStore.Http.Client
             }
 
             return Data.ToObject<T>();
+        }
+
+        public object GetObject(Type t)
+        {
+            if (Data == null)
+            {
+                return null;
+            }
+
+            return Data.ToObject(t);
         }
     }
 }

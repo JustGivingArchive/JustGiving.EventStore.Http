@@ -173,8 +173,18 @@ _subscriber.SubscribeTo("SomeStream", "BackfillingSomeEventV1"); //whilst kickin
 
 ```
 
+**Q:** Can I replay events, or process events without a subscription?<br />
+**A:** Yes.  You will need to have initialised an <code>EventStreamSubscriber</code> (although you do not need any subscriptions), and then you can just call <code>AdHocInvokeAsync</code>, passing in the stream name, and event id.  A third parameter of <code>subscriberId</code> is available, in case you have any handlers with a <code>[NonDefaultSubscriber]</code><br />
+    Once the invocation has completed, you will receive a status object, with the result of the execution, and any exceptions that may have been raised by handlers.
+
+```csharp
+
+var result = await _subscriber.AdHocInvokeAsync("SomeStream", 123);
+
+```
+
 **Q:** Any known bugs?<br />
-**A:** None as of 17/Oct/2014
+**A:** None as of 22/May/2015, but the subscriber does not support competing consumers right now.
 
 Otherwise, see https://github.com/JustGiving/JustGiving.EventStore.Http/issues - all issues welcome
 

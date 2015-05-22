@@ -529,6 +529,91 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             @explicit.Method.Should().Be(expectedMethod, "The expected method overload was not called on explicit handler");
         }
 
+        [Test]
+        public async Task AdHocInvokeAsync_ShouldAttemptToRetrieveCorrectEvent()
+        {
+            var result = new EventReadResult(EventReadStatus.NotFound, null);
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
+            await _subscriber.AdHocInvokeAsync(StreamName, 123);
+
+            _eventStoreHttpConnectionMock.Verify(x=>x.ReadEventAsync(It.Is<string>(s=>s==StreamName), It.Is<int>(i=>i==123)));
+        }
+
+        [Test]
+        public async Task AdHocInvokeAsync_IfEventCannotBeRead_ReturnAppropriateResult()
+        {
+            var result = new EventReadResult(EventReadStatus.NotFound, null);
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
+            var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
+
+            invocationResult.ResultCode.Should().Be(AdHocInvocationResult.AdHocInvocationResultCode.CouldNotFindEvent);
+        }
+
+        [Test]
+        public async Task AdHocInvokeAsync_IfEventHasNoHandlers_ReturnAppropriateResult()
+        {
+            var result = new EventReadResult(EventReadStatus.Success, new EventInfo
+            {
+                Summary = typeof(SomeHandlerForACustomSubscriberId).FullName
+            });
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
+            var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
+
+            invocationResult.ResultCode.Should().Be(AdHocInvocationResult.AdHocInvocationResultCode.NoHandlersFound);
+        }
+
+        [Test]
+        public async Task AdHocInvokeAsync_IfEventHasHandlers_ReturnAppropriateResult()
+        {
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof (EventANoBaseOrInterface));
+            _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(It.IsAny<Type>())).Returns(new [] { new SomeImplicitHandler() });
+
+            var result = new EventReadResult(EventReadStatus.Success, new EventInfo
+            {
+                Summary = typeof(EventANoBaseOrInterface).FullName
+            });
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
+            var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
+
+            invocationResult.ResultCode.Should().Be(AdHocInvocationResult.AdHocInvocationResultCode.Success);
+        }
+
+        [Test]
+        public async Task AdHocInvokeAsync_IfEventHasHandlers_AndHandlerThrowsAnException_Return_AppropriateResult()
+        {
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
+            _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(It.IsAny<Type>())).Returns(new[] { new HandlerThatThrowsAnException() });
+
+            var result = new EventReadResult(EventReadStatus.Success, new EventInfo
+            {
+                Summary = typeof(EventANoBaseOrInterface).FullName
+            });
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
+            var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
+
+            invocationResult.ResultCode.Should().Be(AdHocInvocationResult.AdHocInvocationResultCode.HandlerThrewException);
+        }
+
+        [Test]
+        public async Task AdHocInvokeAsync_IfEventHasHandlers_AndHandlerThrowsAnException_ExceptionShouldBeRecorded()
+        {
+            _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
+            _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(It.IsAny<Type>())).Returns(new[] { new HandlerThatThrowsAnException() });
+
+            var result = new EventReadResult(EventReadStatus.Success, new EventInfo
+            {
+                Summary = typeof(EventANoBaseOrInterface).FullName
+            });
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
+            var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
+
+            invocationResult.Errors.Should().NotBeNull();
+            invocationResult.Errors.Should().NotBeEmpty();
+            invocationResult.Errors[typeof(HandlerThatThrowsAnException)].Message.Should().Be(HandlerThatThrowsAnException.SomeException.Message);
+        }
+        
+        //monkey
+
         public interface IEvent { }
         public abstract class EventBase { }
 
@@ -754,6 +839,19 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             public void OnError(Exception ex, EventAWithBase @event) { }
             public void OnError(Exception ex, EventAWithBaseAndInterface @event) { }
             public void OnError(Exception ex, EventEWithBaseWhichHasInterface @event) { }
+        }
+
+        public class HandlerThatThrowsAnException : IHandleEventsOf<object>
+        {
+            public static Exception SomeException { get { return new Exception("Some arbitrary, but unique exception message"); } }
+
+            public Task Handle(object @event)
+            {
+                throw SomeException;
+            }
+
+            public void OnError(Exception ex, object @event)
+            {}
         }
     }
 }

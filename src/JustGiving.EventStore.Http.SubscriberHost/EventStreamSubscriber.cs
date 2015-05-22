@@ -100,6 +100,32 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
         }
 
+        public async Task<AdHocInvocationResult> AdHocInvokeAsync(string stream, int eventNumber, string subscriberId = null)
+        {
+            var eventMetadata = await _connection.ReadEventAsync(stream, eventNumber);
+
+            if (eventMetadata.Status != EventReadStatus.Success)
+            {
+                return new AdHocInvocationResult(AdHocInvocationResult.AdHocInvocationResultCode.CouldNotFindEvent);
+            }
+
+            var eventInfo = eventMetadata.EventInfo;
+
+            var handlers = GetEventHandlersFor(eventInfo.Summary, subscriberId);
+            
+            if (handlers.Any())
+            {
+                var eventType = _eventTypeResolver.Resolve(eventInfo.Summary);
+                var @event = eventInfo.Content.GetObject(eventType);
+                
+                var errors = await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo);
+
+                return errors.Any() ? new AdHocInvocationResult(errors) : new AdHocInvocationResult(AdHocInvocationResult.AdHocInvocationResultCode.Success);
+            }
+            
+            return new AdHocInvocationResult(AdHocInvocationResult.AdHocInvocationResultCode.NoHandlersFound);
+        }
+
         public async Task PollAsync(string stream, string subscriberId)
         {
             Log.Debug(_log, "{0}|{1}: Begin polling", stream, subscriberId ?? "default");
@@ -288,7 +314,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
         }
 
-        public async Task InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, object @event, BasicEventInfo eventInfo)
+        public async Task<IDictionary<Type, Exception>> InvokeMessageHandlersForEventMessageAsync(string stream, Type eventType, IEnumerable handlers, object @event, BasicEventInfo eventInfo)
         {
             var handlerCount = 0;
             var eventTitle = eventInfo.Title;
@@ -335,6 +361,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
 
             _performanceMonitors.AsParallel().ForAll(x => x.Accept(stream, eventType.FullName, updated, handlerCount, errors));
+
+            return errors;
         }
 
         ConcurrentDictionary<string, MethodInfo> methodCache = new ConcurrentDictionary<string, MethodInfo>();
