@@ -3,6 +3,9 @@ JG.EventStore.Http
 
 A minimal [EventStore](http://www.geteventstore.com) .Net HTTP client, with some subscribing functionality too.
 
+![Nuget](https://img.shields.io/nuget/dt/JustGiving.EventStore.Http.Client.svg)
+![Nuget](https://img.shields.io/nuget/v/JustGiving.EventStore.Http.Client.svg)
+
 FAQs
 ----
 
