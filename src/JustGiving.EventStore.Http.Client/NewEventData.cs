@@ -53,7 +53,7 @@ namespace JustGiving.EventStore.Http.Client
 
         public static NewEventData Create<T>(Guid eventId, T data, object metadata = null)
         {
-            return new NewEventData(eventId, typeof(T).FullName, data, metadata);
+            return new NewEventData(eventId, data.GetType().FullName, data, metadata);
         }
     }
 }

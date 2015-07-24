@@ -16,6 +16,15 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
+        public void WhenCreating_AndDeclaringAsABaseClass_ShouldSetEventTypeCorrectly()
+        {
+            var eventData = NewEventData.Create<object>(new Something());
+            
+            // The EventType should be based on the actual concrete class of the event. Not the base class.
+            eventData.EventType.Should().Be(typeof(Something).FullName);
+        }
+
+        [Test]
         public void WhenCreating_ShouldSetDataCorrectly()
         {
             var expectedData = new { Id = 123, Foo = "bar" };
