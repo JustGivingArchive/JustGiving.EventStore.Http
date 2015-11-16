@@ -54,7 +54,7 @@ namespace JustGiving.EventStore.Http.Client
             Ensure.NotNull(settings, "settings");
             Ensure.NotNull(endpoint, "endpoint");
 
-            
+
             _httpClientProxy = settings.HttpClientProxy;
             _settings = settings;
             _log = settings.Log;
@@ -266,14 +266,14 @@ namespace JustGiving.EventStore.Http.Client
             {
                 return null;
             }
-            return intermediary.ToObject(eventType);                                                                                                                                                                                                                                                                 
+            return intermediary.ToObject(eventType);
         }
 
         public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout)
         {
             using (var client = GetClient())
             {
-                var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count);
+                var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count, "?embed=rich");
                 Log.Debug(_log, "Reading forwards from {0}", url);
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.eventstore.atom+json"));
