@@ -172,7 +172,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                         streamSliceResult.Entries.Clear();
                     }
                 });
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { EventType = typeof(EventANoBaseOrInterface).FullName }));
             await _subscriber.PollAsync(StreamName, SubscriberId);
 
             _subscriptionTimerManagerMock.Verify(x => x.Pause(StreamName, SubscriberId), Times.Once);
@@ -199,7 +199,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                     }
                 });
 
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { EventType = typeof(EventANoBaseOrInterface).FullName }));
 
             _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(It.IsAny<Type>())).Returns(new List<object> { new SomeImplicitHandler() });
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
@@ -235,7 +235,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                     }
                 });
 
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { EventType = typeof(EventANoBaseOrInterface).FullName }));
 
             _eventHandlerResolverMock.Setup(x => x.GetHandlersOf(It.IsAny<Type>())).Returns(new List<object> { new SomeImplicitHandler() });
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(EventANoBaseOrInterface));
@@ -266,7 +266,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
                         streamSliceResult.Entries.Clear();
                     }
                 });
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { EventType = typeof(EventANoBaseOrInterface).FullName }));
 
             await _subscriber.PollAsync(StreamName, SubscriberId);
 
@@ -287,7 +287,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             _eventTypeResolverMock.Setup(x => x.Resolve(It.IsAny<string>())).Returns(typeof(string));
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => streamSliceResult);
-            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { Summary = typeof(EventANoBaseOrInterface).FullName }));
+            _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(StreamName, It.IsAny<int>())).Returns(async () => new EventReadResult(EventReadStatus.Success, new EventInfo { EventType = typeof(EventANoBaseOrInterface).FullName }));
 
             await _subscriber.PollAsync(StreamName, SubscriberId);
 
@@ -362,9 +362,9 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public void GetHandlersApplicableToSubscriberId_ShouldOnlyYieldDefaultHandlersWhenRunningForDefaultSubscriber()
         {
             var input = new object[] {new SomeHandlerForTheDefaultSubscriberId(), new SomeHandlerForACustomSubscriberId()};
-            
+
             var result = _subscriber.GetHandlersApplicableToSubscriberId(input, null).ToList();
-            
+
             result.Count.Should().Be(1);
             result[0].Should().BeOfType<SomeHandlerForTheDefaultSubscriberId>();
         }
@@ -373,7 +373,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         public void GetHandlersApplicableToSubscriberId_ShouldOnlyYieldCustomHandlersWhenRunningForCustomSubscriber()
         {
             var input = new object[] { new SomeHandlerForTheDefaultSubscriberId(), new SomeHandlerForACustomSubscriberId() };
-            
+
             var result = _subscriber.GetHandlersApplicableToSubscriberId(input, "SomeSubscriberId").ToList();
 
             result.Count.Should().Be(1);
@@ -437,7 +437,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var streamSliceResult = new StreamEventsSlice
             {
-                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", Summary = "SomeType", Updated = EventDate } }
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "1@Stream", EventType = "SomeType", Updated = EventDate } }
             };
 
             var count = 0;
@@ -513,7 +513,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         [TestCase(typeof(EventCWithBase), "object")]
         [TestCase(typeof(EventCWithBaseAndInterface), "object")]
         [TestCase(typeof(EventDWithBaseWhichHasInterface), "object")]
-        [TestCase(typeof(EventEWithBaseWhichHasInterface), "EventEWithBaseWhichHasInterface")]   
+        [TestCase(typeof(EventEWithBaseWhichHasInterface), "EventEWithBaseWhichHasInterface")]
         public async Task InvokeMessageHandlersForEventMessageAsync_ShouldInvokeCorrectHandlerOverloadForType(Type eventType, string expectedMethod)
         {
             var @implicit = new MultiTypeImplicitHandler();
@@ -554,7 +554,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             var result = new EventReadResult(EventReadStatus.Success, new EventInfo
             {
-                Summary = typeof(SomeHandlerForACustomSubscriberId).FullName
+                EventType = typeof(SomeHandlerForACustomSubscriberId).FullName
             });
             _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
             var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
@@ -570,7 +570,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var result = new EventReadResult(EventReadStatus.Success, new EventInfo
             {
-                Summary = typeof(EventANoBaseOrInterface).FullName
+                EventType = typeof(EventANoBaseOrInterface).FullName
             });
             _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
             var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
@@ -586,7 +586,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var result = new EventReadResult(EventReadStatus.Success, new EventInfo
             {
-                Summary = typeof(EventANoBaseOrInterface).FullName
+                EventType = typeof(EventANoBaseOrInterface).FullName
             });
             _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
             var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
@@ -602,7 +602,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
 
             var result = new EventReadResult(EventReadStatus.Success, new EventInfo
             {
-                Summary = typeof(EventANoBaseOrInterface).FullName
+                EventType = typeof(EventANoBaseOrInterface).FullName
             });
             _eventStoreHttpConnectionMock.Setup(x => x.ReadEventAsync(It.IsAny<string>(), It.IsAny<int>())).Returns(async () => result);
             var invocationResult = await _subscriber.AdHocInvokeAsync(StreamName, 123);
@@ -611,7 +611,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
             invocationResult.Errors.Should().NotBeEmpty();
             invocationResult.Errors[typeof(HandlerThatThrowsAnException)].Message.Should().Be(HandlerThatThrowsAnException.SomeException.Message);
         }
-        
+
         //monkey
 
         public interface IEvent { }
@@ -650,7 +650,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             public EventANoBaseOrInterface EventA;
             public BasicEventInfo Metadata;
-            public Task Handle(EventANoBaseOrInterface eventA, BasicEventInfo metadata) { 
+            public Task Handle(EventANoBaseOrInterface eventA, BasicEventInfo metadata) {
                 return Task.Run(() =>
                 {
                     EventA = eventA;
