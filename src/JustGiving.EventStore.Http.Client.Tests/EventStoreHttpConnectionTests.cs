@@ -453,11 +453,20 @@ namespace JustGiving.EventStore.Http.Client.Tests
         }
 
         [Test]
+        public async void ReadStreamEventsForwardAsync_UsesEmbedRichQueryToFetchEventTypeInfo()
+        {
+            await ReadStreamEventsForwardTest(123, 15, It.IsAny<TimeSpan?>(), (client, request) =>
+            {
+                request.RequestUri.AbsoluteUri.Should().Contain("?embed=rich");
+            });
+        }
+
+        [Test]
         public async void ReadStreamEventsForwardAsync_KnownEventURIShouldBeCorrect()
         {
             await ReadStreamEventsForwardTest(123, 15, It.IsAny<TimeSpan?>(), (client, request) =>
             {
-                request.RequestUri.AbsoluteUri.Should().Be(string.Format("{0}/streams/{1}/123/forward/15", Endpoint, StreamName));
+                request.RequestUri.AbsoluteUri.Should().Contain(string.Format("{0}/streams/{1}/123/forward/15", Endpoint, StreamName));
             });
         }
 

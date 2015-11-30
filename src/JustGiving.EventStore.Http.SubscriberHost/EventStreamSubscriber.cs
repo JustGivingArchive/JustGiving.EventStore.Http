@@ -29,13 +29,13 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         private readonly IEnumerable<IEventStreamSubscriberPerformanceMonitor> _performanceMonitors;
         private readonly int _eventNotFoundRetryCount;
         private readonly TimeSpan _eventNotFoundRetryDelay;
-       
+
         public IStreamSubscriberIntervalMonitor StreamSubscriberMonitor { get; private set; }
         public PerformanceStats AllEventsStats { get; private set; }
         public PerformanceStats ProcessedEventsStats { get; private set; }
-      
+
         private readonly object _synchroot = new object();
-        
+
         /// <summary>
         /// Creates a new <see cref="IEventStreamSubscriber"/> to single node using default <see cref="ConnectionSettings"/>
         /// </summary>
@@ -67,7 +67,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             _longPollingTimeout = settings.LongPollingTimeout;
             _performanceMonitors = settings.PerformanceMonitors;
             _log = settings.Log;
-            
+
             _eventNotFoundRetryCount = settings.EventNotFoundRetryCount;
             _eventNotFoundRetryDelay = settings.EventNotFoundRetryDelay;
 
@@ -111,18 +111,18 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             var eventInfo = eventMetadata.EventInfo;
 
-            var handlers = GetEventHandlersFor(eventInfo.Summary, subscriberId);
-            
+            var handlers = GetEventHandlersFor(eventInfo.EventType, subscriberId);
+
             if (handlers.Any())
             {
-                var eventType = _eventTypeResolver.Resolve(eventInfo.Summary);
+                var eventType = _eventTypeResolver.Resolve(eventInfo.EventType);
                 var @event = eventInfo.Content.GetObject(eventType);
-                
+
                 var errors = await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo);
 
                 return errors.Any() ? new AdHocInvocationResult(errors) : new AdHocInvocationResult(AdHocInvocationResult.AdHocInvocationResultCode.Success);
             }
-            
+
             return new AdHocInvocationResult(AdHocInvocationResult.AdHocInvocationResultCode.NoHandlersFound);
         }
 
@@ -172,19 +172,19 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     Log.Debug(_log, "{0}|{1}: Processing {2} events", stream, subscriberId ?? "default", processingBatch.Entries.Count);
                     foreach (var message in processingBatch.Entries)
                     {
-                        var handlers = GetEventHandlersFor(message.Summary, subscriberId);
+                        var handlers = GetEventHandlersFor(message.EventType, subscriberId);
                         AllEventsStats.MessageProcessed(stream);
 
                         if (handlers.Any())
                         {
-                            await ProcessSingleMessageAsync(stream, _eventTypeResolver.Resolve(message.Summary), handlers, message, subscriberId);
+                            await ProcessSingleMessageAsync(stream, _eventTypeResolver.Resolve(message.EventType), handlers, message, subscriberId);
                             ProcessedEventsStats.MessageProcessed(stream);
                         }
                         else
                         {
                             _performanceMonitors.AsParallel()
                                                 .ForAll(
-                                                    x => x.Accept(stream, message.Summary, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>())
+                                                    x => x.Accept(stream, message.EventType, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>())
                                                     );
                         }
 
@@ -233,7 +233,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             var handlers = _eventHandlerResolver.GetHandlersOf(baseHandlerInterfaceType).Cast<object>().ToList();
             var metadataHandlers = _eventHandlerResolver.GetHandlersOf(baseMetadataHandlerInterfaceType).Cast<object>();
-            
+
             var allHandlers = handlers.Concat(metadataHandlers);
             var handlersForSubscriberId = GetHandlersApplicableToSubscriberId(allHandlers, subscriberId).ToList();
 
@@ -273,7 +273,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 if (i > 0)
                 {
                     await Task.Delay(_eventNotFoundRetryDelay);
-                }   
+                }
 
                 try
                 {
