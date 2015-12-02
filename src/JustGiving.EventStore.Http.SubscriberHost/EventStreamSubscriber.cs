@@ -188,8 +188,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                                                     );
                         }
 
-                        Log.Debug(_log, "{0}|{1}: Storing last read event as {2}", stream, subscriberId ?? "default", message.SequenceNumber);
-                        await _streamPositionRepository.SetPositionForAsync(stream, subscriberId, message.SequenceNumber);
+                        Log.Debug(_log, "{0}|{1}: Storing last read event as {2}", stream, subscriberId ?? "default", message.PositionEventNumber);
+                        await _streamPositionRepository.SetPositionForAsync(stream, subscriberId, message.PositionEventNumber);
 
                         if (!IsSubscribed(subscriberId))
                         {

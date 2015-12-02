@@ -11,14 +11,11 @@ namespace JustGiving.EventStore.Http.Client
         public string EventType { get; set; }
         public DateTime Updated { get; set; }
 
-        public int SequenceNumber
-        {
-            get
-            {
-                var idString = Title.Split('@')[0];
-                return int.Parse(idString);
-            }
-        }
+        // Leaving sequence number here to be compatible backwards
+        [Obsolete("Use PositionEventNumber instead.")]
+        public int SequenceNumber { get { return PositionEventNumber; } }
+
+        public int PositionEventNumber { get; set; }
 
         public List<Link> Links { get; set; }
 
