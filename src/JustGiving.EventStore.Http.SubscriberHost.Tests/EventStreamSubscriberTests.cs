@@ -312,7 +312,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         {
             var streamSliceResult = new StreamEventsSlice
             {
-                Entries = new List<BasicEventInfo> { new BasicEventInfo { Title = "123@Stream" } }
+                Entries = new List<BasicEventInfo> { new BasicEventInfo { PositionEventNumber = 123 } }
             };
             int count = 0;
             _eventStoreHttpConnectionMock.Setup(x => x.ReadStreamEventsForwardAsync(StreamName, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<TimeSpan?>())).Returns(async () => await Task.FromResult(streamSliceResult)).Callback(
