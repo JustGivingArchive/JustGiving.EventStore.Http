@@ -11,6 +11,10 @@ namespace JustGiving.EventStore.Http.Client
         public string EventType { get; set; }
         public DateTime Updated { get; set; }
 
+        // Leaving sequence number here to be compatible backwards
+        [Obsolete("Use PositionEventNumber instead.")]
+        public int SequenceNumber { get { return PositionEventNumber; } }
+
         public int PositionEventNumber { get; set; }
 
         public List<Link> Links { get; set; }
