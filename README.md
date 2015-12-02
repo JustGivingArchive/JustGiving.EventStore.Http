@@ -5,6 +5,7 @@ A minimal [EventStore](http://www.geteventstore.com) .Net HTTP client, with some
 
 ![Nuget](https://img.shields.io/nuget/dt/JustGiving.EventStore.Http.Client.svg)
 ![Nuget](https://img.shields.io/nuget/v/JustGiving.EventStore.Http.Client.svg)
+[![Join the chat at https://gitter.im/JustGiving/JustGiving.EventStore.Http](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/JustGiving/JustGiving.EventStore.Http?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 FAQs
 ----
