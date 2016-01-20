@@ -98,7 +98,7 @@ namespace SomeApp.Events
 [System.ComponentModel.DefaultEvent("MyDomain:PasswordUpdated-V3")]
 public class UserChangedPassword
 {
-    public void UserId{ get; set; }
+    public int UserId{ get; set; }
     public DateTime DateChanged{ get; set; }
 }
 ```
@@ -108,7 +108,7 @@ public class UserChangedPassword
 [BindsTo("MyDomain:PasswordUpdated-V2")]
 public class UserChangedPassword
 {
-    public void UserId{ get; set; }
+    public Guid UserId{ get; set; }
     public DateTime DateChanged{ get; set; }
 }
 ```
