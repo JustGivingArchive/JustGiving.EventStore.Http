@@ -37,7 +37,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         }
 
         [Test]
-        public void UpdateMonitor_strem_should_be_behind_when_0_interval()
+        public void UpdateMonitor_stream_should_be_behind_when_0_interval()
         {
             _monitor.UpdateEventStreamSubscriberIntervalMonitor(StreamName, TimeSpan.FromMilliseconds(-5), SubscriberId);
             _monitor.IsStreamBehind(StreamName, SubscriberId).Should().BeTrue();
