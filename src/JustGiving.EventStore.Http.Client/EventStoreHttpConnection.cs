@@ -15,8 +15,12 @@ namespace JustGiving.EventStore.Http.Client
 {
     /// <summary>
     /// EventStore Http connection.
+    /// <para>
+    /// As this connection is backed by <see cref="HttpClient"/>, clients are subject to connection management per <see cref="ServicePointManager"/>.
+    /// See https://msdn.microsoft.com/en-us/library/system.net.servicepoint%28v=vs.110%29.aspx for details on configuration options.
+    /// </para>
     /// </summary>
-    /// <remarks>Clients should dispose of this <see cref="EventStoreHttpConnection"/> to release any resources it may have in use.</remarks>
+    /// <remarks>Clients of instances of this type should dispose of it, to release any resources it may have in use.</remarks>
     public class EventStoreHttpConnection : IEventStoreHttpConnection, IDisposable
     {
         private readonly ConnectionSettings _settings;
