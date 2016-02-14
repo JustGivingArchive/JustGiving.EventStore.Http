@@ -13,7 +13,11 @@ using Newtonsoft.Json.Linq;
 
 namespace JustGiving.EventStore.Http.Client
 {
-    public class EventStoreHttpConnection : IEventStoreHttpConnection
+    /// <summary>
+    /// EventStore Http connection.
+    /// </summary>
+    /// <remarks>Clients should dispose of this <see cref="EventStoreHttpConnection"/> to release any resources it may have in use.</remarks>
+    public class EventStoreHttpConnection : IEventStoreHttpConnection, IDisposable
     {
         private readonly ConnectionSettings _settings;
         private readonly IHttpClientProxy _httpClientProxy;
@@ -21,6 +25,7 @@ namespace JustGiving.EventStore.Http.Client
         private readonly string _endpoint;
         private readonly string _connectionName;
         private readonly Action<IEventStoreHttpConnection, Exception> _errorHandler;
+        private readonly HttpClient _httpClient;
 
         /// <summary>
         /// Creates a new <see cref="IEventStoreHttpConnection"/> to single node using default <see cref="ConnectionSettings"/>
@@ -28,7 +33,7 @@ namespace JustGiving.EventStore.Http.Client
         /// <param name="connectionSettings">The <see cref="ConnectionSettings"/> to apply to the new connection</param>
         /// <param name="endpoint">The endpoint to connect to.</param>
         /// <returns>a new <see cref="IEventStoreHttpConnection"/></returns>
-        public static IEventStoreHttpConnection Create(ConnectionSettings connectionSettings, string endpoint)
+        public static EventStoreHttpConnection Create(ConnectionSettings connectionSettings, string endpoint)
         {
             return new EventStoreHttpConnection(connectionSettings, endpoint);
         }
@@ -38,7 +43,7 @@ namespace JustGiving.EventStore.Http.Client
         /// </summary>
         /// <param name="endpoint">The endpoint to connect to.</param>
         /// <returns>a new <see cref="IEventStoreHttpConnection"/></returns>
-        public static IEventStoreHttpConnection Create(string endpoint)
+        public static EventStoreHttpConnection Create(string endpoint)
         {
             return new EventStoreHttpConnection(ConnectionSettings.Default, endpoint);
         }
@@ -54,13 +59,13 @@ namespace JustGiving.EventStore.Http.Client
             Ensure.NotNull(settings, "settings");
             Ensure.NotNull(endpoint, "endpoint");
 
-
             _httpClientProxy = settings.HttpClientProxy;
             _settings = settings;
             _log = settings.Log;
             _endpoint = endpoint;
             _errorHandler = settings.ErrorHandler;
             _connectionName = settings.ConnectionName;
+            _httpClient = GetClient();
         }
 
         public string ConnectionName { get { return _connectionName; } }
@@ -75,9 +80,8 @@ namespace JustGiving.EventStore.Http.Client
         public async Task DeleteStreamAsync(string stream, int expectedVersion, bool hardDelete)
         {
             Log.Info(_log, "Deleting stream {0} (hard={1})", stream, hardDelete);
-            using (var client = GetClient())
+            using (var request = new HttpRequestMessage(HttpMethod.Delete, _endpoint + "/streams/" + stream))
             {
-                var request = new HttpRequestMessage(HttpMethod.Delete, _endpoint + "/streams/" + stream);
                 request.Headers.Add("ES-ExpectedVersion", expectedVersion.ToString());
 
                 if (hardDelete)
@@ -85,7 +89,7 @@ namespace JustGiving.EventStore.Http.Client
                     request.Headers.Add("ES-HardDelete", "true");
                 }
 
-                var result = await _httpClientProxy.SendAsync(client, request);
+                var result = await _httpClientProxy.SendAsync(_httpClient, request);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -113,14 +117,13 @@ namespace JustGiving.EventStore.Http.Client
         public async Task AppendToStreamAsync(string stream, int expectedVersion, params NewEventData[] events)
         {
             var url = _endpoint + "/streams/" + stream;
-            Log.Info(_log, "Appending {0} events to {1}", events==null?0 :events.Length, stream);
-            using (var client = GetClient())
-            {
-                var request = new HttpRequestMessage(HttpMethod.Post, url);
+            Log.Info(_log, "Appending {0} events to {1}", events == null ? 0 : events.Length, stream);
 
+            using (var request = new HttpRequestMessage(HttpMethod.Post, url))
+            {
                 request.Content = new StringContent(JsonConvert.SerializeObject(events), Encoding.UTF8, "application/vnd.eventstore.events+json");
                 request.Headers.Add("ES-ExpectedVersion", expectedVersion.ToString());
-                var result = await _httpClientProxy.SendAsync(client, request);
+                var result = await _httpClientProxy.SendAsync(_httpClient, request);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -138,16 +141,16 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task<EventReadResult> ReadEventAsync(string url)
         {
-            using (var client = GetClient())
+            Log.Info(_log, "Reading event from {0}", url);
+
+            using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
-                Log.Info(_log, "Reading event from {0}", url);
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.eventstore.atom+json"));
-                var result = await _httpClientProxy.SendAsync(client, request);
+                var result = await _httpClientProxy.SendAsync(_httpClient, request);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
-                    Log.Warning(_log, "Read Event:Not Found {0}", url);
+                    Log.Warning(_log, "Read Event: Not Found {0}", url);
                     return new EventReadResult(EventReadStatus.NotFound, null);
                 }
 
@@ -187,16 +190,16 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task<JObject> ReadEventBodyAsync(string url)
         {
-            using (var client = GetClient())
+            Log.Info(_log, "Reading event body from {0}", url);
+
+            using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
-                Log.Info(_log, "Reading event body from {0}", url);
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Add("accept", "application/json");
-                var result = await _httpClientProxy.SendAsync(client, request);
+                var result = await _httpClientProxy.SendAsync(_httpClient, request);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
-                    Log.Warning(_log, "Read Event:Not Found {0}", url);
+                    Log.Warning(_log, "Read Event: Not Found {0}", url);
                     throw new EventNotFoundException(url, result.StatusCode, result.Content.ToString());
                 }
 
@@ -271,20 +274,21 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout)
         {
-            using (var client = GetClient())
+            var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count, "?embed=rich");
+
+            Log.Debug(_log, "Reading forwards from {0}", url);
+
+            using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
-                var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count, "?embed=rich");
-                Log.Debug(_log, "Reading forwards from {0}", url);
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.eventstore.atom+json"));
-                if (longPollingTimeout.HasValue && longPollingTimeout.Value.TotalSeconds>=1)
+                if (longPollingTimeout.HasValue && longPollingTimeout.Value.TotalSeconds >= 1)
                 {
                     request.Headers.Add("ES-LongPoll", longPollingTimeout.Value.TotalSeconds.ToString());
                 }
 
                 try
                 {
-                    var result = await _httpClientProxy.SendAsync(client, request);
+                    var result = await _httpClientProxy.SendAsync(_httpClient, request);
 
                     if (result.StatusCode == HttpStatusCode.NotFound)
                     {
@@ -326,11 +330,14 @@ namespace JustGiving.EventStore.Http.Client
             return url;
         }
 
+        /// <summary>
+        /// Create a new <see cref="HttpClient"/> with the configured timeout.
+        /// </summary>
         public HttpClient GetClient()
         {
             var handler = GetHandler();
 
-            var client = new HttpClient(handler, true);
+            var client = new HttpClient(handler, disposeHandler: true);
 
             if (_settings.ConnectionTimeout.HasValue)
             {
@@ -342,14 +349,12 @@ namespace JustGiving.EventStore.Http.Client
 
         public HttpClientHandler GetHandler()
         {
-            var handler = new HttpClientHandler();
+            var defaultCredentials = _settings.DefaultUserCredentials;
+            var credentials = defaultCredentials == null
+                ? null
+                : new NetworkCredential(defaultCredentials.Username, defaultCredentials.Password);
 
-            if (_settings.DefaultUserCredentials != null)
-            {
-                var defaultCredentials = _settings.DefaultUserCredentials;
-                handler.Credentials = new NetworkCredential(defaultCredentials.Username, defaultCredentials.Password);
-            }
-            return handler;
+            return new HttpClientHandler { Credentials = credentials };
         }
 
         public void HandleError(Exception ex)
@@ -360,5 +365,9 @@ namespace JustGiving.EventStore.Http.Client
             }
         }
 
+        public void Dispose()
+        {
+            _httpClient.Dispose();
+        }
     }
 }
