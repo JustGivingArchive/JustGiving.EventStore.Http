@@ -1,7 +1,6 @@
 ﻿properties {
   $Build_Artifacts = 'output'
   $pwd = pwd
-  $msbuild = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
   $nunit =  "$pwd\packages\NUnit.Runners.2.6.4\tools\nunit-console-x86.exe"
   $TestOutput = "$pwd\BuildOutput"
   $UnitTestOutputFolder = "$TestOutput\UnitTestOutput";
@@ -17,7 +16,11 @@ task default -depends Init, Clean, GetPackages, WriteNuspecNuget, Compile, Test,
 task local -depends Init, Clean, GetPackages, WriteNuspecNuget, Compile, Test, PackageNuget, Cleanup 
 
 task Init {
-	
+
+        $msbuildRegistry = "HKLM:\software\Microsoft\MSBuild\ToolsVersions\14.0"
+
+        $script:msbuild = join-path -path (Get-ItemProperty $msbuildRegistry).MSBuildToolsPath -childpath "msbuild.exe"  	
+
 	if (!$PublicNugetApiKey) 
 	{
 		$PublicNugetApiKey = $Env:PublicNugetApiKey
@@ -67,7 +70,7 @@ function Write-Nuspec {
 }
 
 task Compile {  
-   Exec {  & $msbuild /m:4 /verbosity:quiet /nologo /p:OutDir=""$Build_Artifacts\"" /t:Rebuild /p:Configuration=Release "$(Get-FirstSlnFile)" }   	
+   Exec {  & $script:msbuild /m:4 /verbosity:quiet /nologo /p:OutDir=""$Build_Artifacts\"" /t:Rebuild /p:Configuration=Release "$(Get-FirstSlnFile)" }   	
 }
 
 task Test { 			
