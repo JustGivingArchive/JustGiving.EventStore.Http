@@ -7,7 +7,7 @@ namespace JustGiving.EventStore.Http.Client
     {
         public async Task<HttpResponseMessage> SendAsync(HttpClient client, HttpRequestMessage request)
         {
-            return await client.SendAsync(request);
+            return await client.SendAsync(request).ConfigureAwait(false);
         }
     }
 }
