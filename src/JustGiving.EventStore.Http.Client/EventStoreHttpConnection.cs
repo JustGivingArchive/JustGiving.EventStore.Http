@@ -296,8 +296,9 @@ namespace JustGiving.EventStore.Http.Client
                     if (!result.IsSuccessStatusCode)
                     {
                         Log.Warning(_log, "Event slice: other error ({0}): {1}", result.StatusCode.ToString(), url);
-                        throw new EventStoreHttpException(await result.Content.ReadAsStringAsync(), result.ReasonPhrase,
-                            result.StatusCode);
+
+                        var message = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        throw new EventStoreHttpException(message, result.ReasonPhrase, result.StatusCode);
                     }
 
                     var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);

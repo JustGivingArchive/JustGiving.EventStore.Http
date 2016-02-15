@@ -159,12 +159,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream, subscriberId).ConfigureAwait(false) ?? -1;
 
                 Log.Debug(_log, "{0}|{1}: Last position for stream was {2}", stream, subscriberId ?? "default", lastPosition);
-
                 Log.Debug(_log, "{0}|{1}: Begin reading event metadata", stream, subscriberId??"default");
+
                 var processingBatch =
-                    await
-                        _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize,
-                            _longPollingTimeout);
+                    await _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize, _longPollingTimeout).ConfigureAwait(false);
+
                 Log.Debug(_log, "{0}|{1}: Finished reading event metadata: {2}", stream, subscriberId ?? "default", processingBatch.Status);
 
                 if (processingBatch.Status == StreamReadStatus.Success)
@@ -184,8 +183,8 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         {
                             _performanceMonitors.AsParallel()
                                                 .ForAll(
-                                                    x => x.Accept(stream, message.EventType, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>())
-                                                    );
+                                                    m => m.Accept(stream, message.EventType, message.Updated, 0, Enumerable.Empty<KeyValuePair<Type, Exception>>())
+                                                );
                         }
 
                         Log.Debug(_log, "{0}|{1}: Storing last read event as {2}", stream, subscriberId ?? "default", message.PositionEventNumber);
