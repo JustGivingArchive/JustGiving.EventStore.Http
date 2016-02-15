@@ -28,14 +28,14 @@ namespace JustGiving.EventStore.Http.Client.Tests
         {
             _httpClientProxyMock = new Mock<IHttpClientProxy>();
             _defaultConnectionSettings = GetConnectionSettings();
-            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(_defaultConnectionSettings, Endpoint);
+            _connection = EventStoreHttpConnection.Create(_defaultConnectionSettings, Endpoint);
         }
 
         [Test]
         public void GetHandler_WhenNoDefaultCredentialsAreConfigured_TheClientShouldNotHaveAnyCredentials()
         {
-            var builder = new ConnectionSettingsBuilder().WithHttpClientProxy(_httpClientProxyMock.Object);
-            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(builder, Endpoint);
+            var settings = new ConnectionSettingsBuilder().WithHttpClientProxy(_httpClientProxyMock.Object);
+            _connection = EventStoreHttpConnection.Create(settings, Endpoint);
 
             var handler = _connection.GetHandler();
             handler.Credentials.Should().BeNull();
@@ -54,7 +54,7 @@ namespace JustGiving.EventStore.Http.Client.Tests
         [Test]
         public void GetClient_WhenNoDefaultTimeoutIsConfigured_TheClientShouldBe100Seconds()
         {
-            _connection = (EventStoreHttpConnection)EventStoreHttpConnection.Create(ConnectionSettings.Default, Endpoint);
+            _connection = EventStoreHttpConnection.Create(ConnectionSettings.Default, Endpoint);
 
             var client = _connection.GetClient();
             client.Timeout.Should().Be(TimeSpan.FromSeconds(100));
