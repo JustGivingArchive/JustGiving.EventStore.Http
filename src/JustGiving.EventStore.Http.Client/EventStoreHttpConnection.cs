@@ -72,13 +72,13 @@ namespace JustGiving.EventStore.Http.Client
             _httpClient = GetClient();
         }
 
-        public string ConnectionName { get { return _connectionName; } }
+        public string ConnectionName => _connectionName;
 
-        public string Endpoint { get { return _endpoint; } }
+        public string Endpoint => _endpoint;
 
         public async Task DeleteStreamAsync(string stream, int expectedVersion)
         {
-            await DeleteStreamAsync(stream, expectedVersion, false);
+            await DeleteStreamAsync(stream, expectedVersion, false).ConfigureAwait(false);
         }
 
         public async Task DeleteStreamAsync(string stream, int expectedVersion, bool hardDelete)
@@ -93,7 +93,7 @@ namespace JustGiving.EventStore.Http.Client
                     request.Headers.Add("ES-HardDelete", "true");
                 }
 
-                var result = await _httpClientProxy.SendAsync(_httpClient, request);
+                var result = await _httpClientProxy.SendAsync(_httpClient, request).ConfigureAwait(false);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -105,33 +105,33 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task AppendToStreamAsync<T>(string stream, params T[] events)
         {
-            await AppendToStreamAsync(stream, ExpectedVersion.Any, events.Select(x => NewEventData.Create(x)).ToArray());
+            await AppendToStreamAsync(stream, ExpectedVersion.Any, events.Select(x => NewEventData.Create(x)).ToArray()).ConfigureAwait(false);
         }
 
         public async Task AppendToStreamAsync<T>(string stream, object metadata, T @event)
         {
-            await AppendToStreamAsync(stream, ExpectedVersion.Any, NewEventData.Create(@event, metadata));
+            await AppendToStreamAsync(stream, ExpectedVersion.Any, NewEventData.Create(@event, metadata)).ConfigureAwait(false);
         }
 
         public async Task AppendToStreamAsync(string stream, params NewEventData[] events)
         {
-            await AppendToStreamAsync(stream, ExpectedVersion.Any, events);
+            await AppendToStreamAsync(stream, ExpectedVersion.Any, events).ConfigureAwait(false);
         }
 
         public async Task AppendToStreamAsync(string stream, int expectedVersion, params NewEventData[] events)
         {
             var url = _endpoint + "/streams/" + stream;
-            Log.Info(_log, "Appending {0} events to {1}", events == null ? 0 : events.Length, stream);
+            Log.Info(_log, "Appending {0} events to {1}", events?.Length ?? 0, stream);
 
             using (var request = new HttpRequestMessage(HttpMethod.Post, url))
             {
                 request.Content = new StringContent(JsonConvert.SerializeObject(events), Encoding.UTF8, "application/vnd.eventstore.events+json");
                 request.Headers.Add("ES-ExpectedVersion", expectedVersion.ToString());
-                var result = await _httpClientProxy.SendAsync(_httpClient, request);
+                var result = await _httpClientProxy.SendAsync(_httpClient, request).ConfigureAwait(false);
 
                 if (!result.IsSuccessStatusCode)
                 {
-                    Log.Error(_log, "Error appending {0} events to {1}", events == null ? 0 : events.Length, url);
+                    Log.Error(_log, "Error appending {0} events to {1}", events?.Length ?? 0, url);
                     throw new EventStoreHttpException(result.Content.ToString(), result.ReasonPhrase, result.StatusCode);
                 }
             }
@@ -140,7 +140,7 @@ namespace JustGiving.EventStore.Http.Client
         public async Task<EventReadResult> ReadEventAsync(string stream, int position)
         {
             var url = GetCanonicalURIFor(stream, position);
-            return await ReadEventAsync(url);
+            return await ReadEventAsync(url).ConfigureAwait(false);
         }
 
         public async Task<EventReadResult> ReadEventAsync(string url)
@@ -150,7 +150,7 @@ namespace JustGiving.EventStore.Http.Client
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.eventstore.atom+json"));
-                var result = await _httpClientProxy.SendAsync(_httpClient, request);
+                var result = await _httpClientProxy.SendAsync(_httpClient, request).ConfigureAwait(false);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -172,7 +172,7 @@ namespace JustGiving.EventStore.Http.Client
 
                 try
                 {
-                    var content = await result.Content.ReadAsStringAsync();
+                    var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var eventInfo = JsonConvert.DeserializeObject<EventInfo>(content);
 
                     return new EventReadResult(EventReadStatus.Success, eventInfo);
@@ -189,7 +189,7 @@ namespace JustGiving.EventStore.Http.Client
         public async Task<JObject> ReadEventBodyAsync(string stream, int eventNumber)
         {
             var url = GetCanonicalURIFor(stream, eventNumber);
-            return await ReadEventBodyAsync(url);
+            return await ReadEventBodyAsync(url).ConfigureAwait(false);
         }
 
         public async Task<JObject> ReadEventBodyAsync(string url)
@@ -199,7 +199,7 @@ namespace JustGiving.EventStore.Http.Client
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
                 request.Headers.Add("accept", "application/json");
-                var result = await _httpClientProxy.SendAsync(_httpClient, request);
+                var result = await _httpClientProxy.SendAsync(_httpClient, request).ConfigureAwait(false);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -221,7 +221,7 @@ namespace JustGiving.EventStore.Http.Client
 
                 try
                 {
-                    var content = await result.Content.ReadAsStringAsync();
+                    var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (string.IsNullOrEmpty(content))
                     {
                         return null;
@@ -240,40 +240,27 @@ namespace JustGiving.EventStore.Http.Client
         public async Task<T> ReadEventBodyAsync<T>(string stream, int eventNumber) where T: class
         {
             var url = GetCanonicalURIFor(stream, eventNumber);
-            return await ReadEventBodyAsync<T>(url);
+            return await ReadEventBodyAsync<T>(url).ConfigureAwait(false);
         }
 
         public async Task<object> ReadEventBodyAsync(Type eventType, string stream, int eventNumber)
         {
             var url = GetCanonicalURIFor(stream, eventNumber);
-            var intermediary = await ReadEventBodyAsync(url);
+            var intermediary = await ReadEventBodyAsync(url).ConfigureAwait(false);
 
-            if (intermediary == null)
-            {
-                return null;
-            }
-
-            return intermediary.ToObject(eventType);
+            return intermediary?.ToObject(eventType);
         }
 
         public async Task<T> ReadEventBodyAsync<T>(string url) where T: class
         {
-            var intermediary = await ReadEventBodyAsync(url);
-            if (intermediary == null)
-            {
-                return null;
-            }
-            return intermediary.ToObject<T>();
+            var intermediary = await ReadEventBodyAsync(url).ConfigureAwait(false);
+            return intermediary?.ToObject<T>();
         }
 
         public async Task<object> ReadEventBodyAsync(Type eventType, string url)
         {
-            var intermediary = await ReadEventBodyAsync(url);
-            if (intermediary == null)
-            {
-                return null;
-            }
-            return intermediary.ToObject(eventType);
+            var intermediary = await ReadEventBodyAsync(url).ConfigureAwait(false);
+            return intermediary?.ToObject(eventType);
         }
 
         public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout)
@@ -292,7 +279,7 @@ namespace JustGiving.EventStore.Http.Client
 
                 try
                 {
-                    var result = await _httpClientProxy.SendAsync(_httpClient, request);
+                    var result = await _httpClientProxy.SendAsync(_httpClient, request).ConfigureAwait(false);
 
                     if (result.StatusCode == HttpStatusCode.NotFound)
                     {
@@ -313,10 +300,10 @@ namespace JustGiving.EventStore.Http.Client
                             result.StatusCode);
                     }
 
-                    var content = await result.Content.ReadAsStringAsync();
+                    var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var eventInfo = JsonConvert.DeserializeObject<StreamEventsSlice>(content);
                     eventInfo.Status = StreamReadStatus.Success;
-                    eventInfo.Entries.Reverse(); //atom lists things backward
+                    eventInfo.Entries.Reverse(); //atom lists things backwards
 
                     return eventInfo;
                 }
@@ -363,10 +350,7 @@ namespace JustGiving.EventStore.Http.Client
 
         public void HandleError(Exception ex)
         {
-            if (_errorHandler != null)
-            {
-                _errorHandler(this, ex);
-            }
+            _errorHandler?.Invoke(this, ex);
         }
 
         public void Dispose()

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using log4net;
 
 namespace JustGiving.EventStore.Http.Client
@@ -50,7 +51,7 @@ namespace JustGiving.EventStore.Http.Client
 
         public static implicit operator ConnectionSettings(ConnectionSettingsBuilder builder)
         {
-            return new ConnectionSettings(builder._defaultUserCredentials, builder._connectionTimeout, builder._errorHandler, builder._log, builder._httpClientProxy, builder._connectionName ?? string.Format("ES-{0}", Guid.NewGuid()));
+            return new ConnectionSettings(builder._defaultUserCredentials, builder._connectionTimeout, builder._errorHandler, builder._log, builder._httpClientProxy, builder._connectionName ?? $"ES-{Guid.NewGuid()}");
         }
     }
 }

@@ -82,7 +82,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0}|{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
-                _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval, subscriberId));
+                _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId).ConfigureAwait(false), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval, subscriberId));
                 Log.Info(_log, "Subscribed to {0}|{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
             }
         }
@@ -102,7 +102,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public async Task<AdHocInvocationResult> AdHocInvokeAsync(string stream, int eventNumber, string subscriberId = null)
         {
-            var eventMetadata = await _connection.ReadEventAsync(stream, eventNumber);
+            var eventMetadata = await _connection.ReadEventAsync(stream, eventNumber).ConfigureAwait(false);
 
             if (eventMetadata.Status != EventReadStatus.Success)
             {
@@ -118,7 +118,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 var eventType = _eventTypeResolver.Resolve(eventInfo.EventType);
                 var @event = eventInfo.Content.GetObject(eventType);
 
-                var errors = await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo);
+                var errors = await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo).ConfigureAwait(false);
 
                 return errors.Any() ? new AdHocInvocationResult(errors) : new AdHocInvocationResult(AdHocInvocationResult.AdHocInvocationResultCode.Success);
             }
@@ -136,7 +136,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             try
             {
-                await PollAsyncInternal(stream, subscriberId);
+                await PollAsyncInternal(stream, subscriberId).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -156,7 +156,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             var runAgain = false;
             do
             {
-                var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream, subscriberId) ?? -1;
+                var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream, subscriberId).ConfigureAwait(false) ?? -1;
 
                 Log.Debug(_log, "{0}|{1}: Last position for stream was {2}", stream, subscriberId ?? "default", lastPosition);
 
@@ -177,7 +177,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
                         if (handlers.Any())
                         {
-                            await ProcessSingleMessageAsync(stream, _eventTypeResolver.Resolve(message.EventType), handlers, message, subscriberId);
+                            await ProcessSingleMessageAsync(stream, _eventTypeResolver.Resolve(message.EventType), handlers, message, subscriberId).ConfigureAwait(false);
                             ProcessedEventsStats.MessageProcessed(stream);
                         }
                         else
@@ -189,7 +189,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                         }
 
                         Log.Debug(_log, "{0}|{1}: Storing last read event as {2}", stream, subscriberId ?? "default", message.PositionEventNumber);
-                        await _streamPositionRepository.SetPositionForAsync(stream, subscriberId, message.PositionEventNumber);
+                        await _streamPositionRepository.SetPositionForAsync(stream, subscriberId, message.PositionEventNumber).ConfigureAwait(false);
 
                         if (!IsSubscribed(subscriberId))
                         {
@@ -272,14 +272,14 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             {
                 if (i > 0)
                 {
-                    await Task.Delay(_eventNotFoundRetryDelay);
+                    await Task.Delay(_eventNotFoundRetryDelay).ConfigureAwait(false);
                 }
 
                 try
                 {
                     Log.Debug(_log, "{0}|{1}: Processing event {2}. Attempt: {3}", stream, subscriberId ?? "default", eventInfo.Id, i + 1);
 
-                    @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink);
+                    @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink).ConfigureAwait(false);
                     if (@event != null)
                     {
                         break;
@@ -306,7 +306,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
             try
             {
-                await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo);
+                await InvokeMessageHandlersForEventMessageAsync(stream, eventType, handlers, @event, eventInfo).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -338,7 +338,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     try
                     {
                         var arguments = new[] {@event, eventInfo}.Take(handleMethod.GetParameters().Length);
-                        await (Task)handleMethod.Invoke(handler, arguments.ToArray());
+                        await ((Task)handleMethod.Invoke(handler, arguments.ToArray())).ConfigureAwait(false);
                     }
                     catch (Exception invokeException)
                     {

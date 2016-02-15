@@ -13,7 +13,7 @@ namespace JG.EventStore.Http.SubscriberHost.Tests
         //[Test]
         public async void Test()
         {
-            var connection = EventStoreHttpConnection.Create(new ConnectionSettingsBuilder(), "http://127.0.0.1:9113");
+            var connection = EventStoreHttpConnection.Create(new ConnectionSettingsBuilder(), "http://127.0.0.1:2113");
             var resolver = new Mock<IEventHandlerResolver>();
             resolver.Setup(x=>x.GetHandlersOf(It.IsAny<Type>())).Returns(new[]{new SomeEventHandler()});
             var subscriber = EventStreamSubscriber.Create(new EventStreamSubscriberSettingsBuilder(connection, resolver.Object , new MemoryBackedStreamPositionRepositoryForDebugging()));

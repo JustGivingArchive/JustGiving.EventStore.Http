@@ -35,14 +35,14 @@ namespace JustGiving.EventStore.Http.Client
         /// <returns>A <see cref="ConnectionSettingsBuilder"/> that can be used to build up an <see cref="EventStoreHttpConnection"/></returns>
         public static ConnectionSettingsBuilder Create()
         {
-            return new ConnectionSettingsBuilder().WithConnectionTimeoutOf(TimeSpan.FromSeconds(100));
+            return new ConnectionSettingsBuilder();
         }
 
-        public UserCredentials DefaultUserCredentials { get; private set; }
-        public TimeSpan? ConnectionTimeout { get; private set; }
-        public Action<IEventStoreHttpConnection, Exception> ErrorHandler { get; private set; }
+        public UserCredentials DefaultUserCredentials { get;}
+        public TimeSpan? ConnectionTimeout { get;}
+        public Action<IEventStoreHttpConnection, Exception> ErrorHandler { get;}
         public ILog Log { get; private set; }
-        public IHttpClientProxy HttpClientProxy { get; private set; }
-        public string ConnectionName { get; private set; }
+        public IHttpClientProxy HttpClientProxy { get;}
+        public string ConnectionName { get;}
     }
 }
