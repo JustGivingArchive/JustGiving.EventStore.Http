@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.Client", "JustGiving.EventStore.Http.Client\JustGiving.EventStore.Http.Client.csproj", "{E88ED7CE-68BE-4846-8140-81D815B32FDF}"
 EndProject
@@ -37,6 +37,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{4D1778
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustGiving.EventStore.Http.SubscriberHost.Autofac", "JustGiving.EventStore.Http.SubscriberHost.Autofac\JustGiving.EventStore.Http.SubscriberHost.Autofac.csproj", "{D71CDA03-CE7D-4C4D-B1BB-A3EAB9FC7BD2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -67,6 +69,10 @@ Global
 		{0066C550-5C6F-41A5-852B-C7F42E00870B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0066C550-5C6F-41A5-852B-C7F42E00870B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0066C550-5C6F-41A5-852B-C7F42E00870B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D71CDA03-CE7D-4C4D-B1BB-A3EAB9FC7BD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D71CDA03-CE7D-4C4D-B1BB-A3EAB9FC7BD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D71CDA03-CE7D-4C4D-B1BB-A3EAB9FC7BD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D71CDA03-CE7D-4C4D-B1BB-A3EAB9FC7BD2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -74,5 +80,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{0066C550-5C6F-41A5-852B-C7F42E00870B} = {2A3E071F-F877-4E12-85B0-999CCEFF0A32}
 		{22B8A670-65EE-4AB4-8D2F-4D5326BA41D3} = {68A1CBF0-ADBC-43AF-841A-312F34071DC0}
+		{D71CDA03-CE7D-4C4D-B1BB-A3EAB9FC7BD2} = {2A3E071F-F877-4E12-85B0-999CCEFF0A32}
 	EndGlobalSection
 EndGlobal
