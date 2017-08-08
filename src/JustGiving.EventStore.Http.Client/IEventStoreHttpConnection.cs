@@ -153,5 +153,15 @@ namespace JustGiving.EventStore.Http.Client
         /// <param name="longPollingTimeout">The amount of time to wait during a stream read if no events can be found.  If null, then do not wait</param>
         /// <returns>A <see cref="Task&lt;StreamEventsSlice&gt;"/> containing the results of the read operation</returns>
         Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout);
+
+        /// <summary>
+        /// Reads count Events from an Event Stream backwards (e.g. newest to oldest) starting from position start 
+        /// </summary>
+        /// <param name="stream">The stream to read from</param>
+        /// <param name="start">The starting point to read from</param>
+        /// <param name="count">The count of items to read</param>
+        /// <param name="longPollingTimeout">The amount of time to wait during a stream read if no events can be found.  If null, then do not wait</param>
+        /// <returns>A <see cref="Task&lt;StreamEventsSlice&gt;"/> containing the results of the read operation</returns>
+        Task<StreamEventsSlice> ReadStreamEventsBackwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout);
     }
 }

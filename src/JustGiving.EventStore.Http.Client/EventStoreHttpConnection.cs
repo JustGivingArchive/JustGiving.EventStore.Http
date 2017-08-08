@@ -265,9 +265,19 @@ namespace JustGiving.EventStore.Http.Client
 
         public async Task<StreamEventsSlice> ReadStreamEventsForwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout)
         {
-            var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/forward/", count, "?embed=rich");
+            return await ReadStreamEventsAsync(stream, start, count, longPollingTimeout, "forward");
+        }
 
-            Log.Debug(_log, "Reading forwards from {0}", url);
+        public async Task<StreamEventsSlice> ReadStreamEventsBackwardAsync(string stream, int start, int count, TimeSpan? longPollingTimeout)
+        {
+            return await ReadStreamEventsAsync(stream, start, count, longPollingTimeout, "backward");
+        }
+
+        private async Task<StreamEventsSlice> ReadStreamEventsAsync(string stream, int start, int count, TimeSpan? longPollingTimeout, string direction)
+        {
+            var url = string.Concat(_endpoint, "/streams/", stream, "/", start, "/", direction, "/", count, "?embed=rich");
+
+            Log.Debug(_log, "Reading {0}s from {1}", direction, url);
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
