@@ -145,7 +145,7 @@ function Push-Package
 	Foreach-Object{ 
 		Write-Host "Pushing package $($_.name)..."
 		Exec { .\nuget.exe setApiKey $global:PublicNugetApiKey }
-		Exec { .\nuget.exe push $_.name }
+		Exec { .\nuget.exe push $_.name -Source https://www.nuget.org/api/v2/package }
 	}
 }
 
