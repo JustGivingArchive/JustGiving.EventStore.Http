@@ -17,7 +17,7 @@
     <copyright>JustGiving 2014</copyright>
     <dependencies>
       <group>
-        <dependency id="Newtonsoft.Json" />
+        <dependency id="Newtonsoft.Json" version="9.0.0.0" />
         <dependency id="log4net" />
       </group>
     </dependencies>
